@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 export default function LoginPage() {
   const { login } = useAuth();
   const [, navigate] = useLocation();
-  const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [senha, setSenha] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const usuario = await login(email, senha);
+      const usuario = await login(telefone, senha);
       if (usuario.tipo === "vereador") navigate("/dashboard/vereador");
       else if (usuario.tipo === "coordenador") navigate("/dashboard/coordenador");
       else navigate("/dashboard/lider");
@@ -50,13 +50,13 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="tel"
+                value={telefone}
+                onChange={(e) => setTelefone(e.target.value)}
                 className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="seu@email.com"
+                placeholder="(11) 99999-9999"
                 required
                 autoFocus
               />
@@ -86,9 +86,9 @@ export default function LoginPage() {
           <div className="mt-6 pt-4 border-t border-gray-100">
             <p className="text-xs text-gray-500 text-center mb-2 font-medium">Acesso de demonstração</p>
             <div className="grid grid-cols-1 gap-1 text-xs text-gray-500">
-              <p>🏛️ vereador@campanha.com</p>
-              <p>📋 coord1@campanha.com</p>
-              <p>👤 lider1@campanha.com</p>
+              <p>🏛️ 11999990001 (Vereador)</p>
+              <p>📋 11999990002 (Coordenador)</p>
+              <p>👤 11999990004 (Líder)</p>
               <p className="text-gray-400 mt-1">Senha: 123456</p>
             </div>
           </div>

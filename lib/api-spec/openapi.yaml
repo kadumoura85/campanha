@@ -384,12 +384,12 @@ components:
     LoginBody:
       type: object
       properties:
-        email:
+        telefone:
           type: string
         senha:
           type: string
       required:
-        - email
+        - telefone
         - senha
 
     LoginResponse:

@@ -42,21 +42,21 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  const { email, senha } = parsed.data;
+  const { telefone, senha } = parsed.data;
 
   const [usuario] = await db
     .select()
     .from(usuariosTable)
-    .where(eq(usuariosTable.email, email));
+    .where(eq(usuariosTable.telefone, telefone));
 
   if (!usuario) {
-    res.status(401).json({ error: "Email ou senha incorretos" });
+    res.status(401).json({ error: "Telefone ou senha incorretos" });
     return;
   }
 
   const senhaValida = await bcrypt.compare(senha, usuario.senha_hash);
   if (!senhaValida) {
-    res.status(401).json({ error: "Email ou senha incorretos" });
+    res.status(401).json({ error: "Telefone ou senha incorretos" });
     return;
   }
 

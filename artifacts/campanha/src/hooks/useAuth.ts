@@ -60,10 +60,10 @@ export function useAuth() {
     loadUsuario();
   }, [loadUsuario]);
 
-  const login = async (email: string, senha: string) => {
+  const login = async (telefone: string, senha: string) => {
     const resp = await authFetch("/api/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, senha }),
+      body: JSON.stringify({ telefone, senha }),
     });
     const data = await resp.json();
     if (!resp.ok) {

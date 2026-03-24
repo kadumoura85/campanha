@@ -18,7 +18,7 @@ export interface SuccessResponse {
 }
 
 export interface LoginBody {
-  email: string;
+  telefone: string;
   senha: string;
 }
 

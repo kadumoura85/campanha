@@ -12,6 +12,7 @@ export const contatosTable = pgTable("contatos", {
   observacao: text("observacao"),
   lider_id: integer("lider_id"),
   coordenador_id: integer("coordenador_id"),
+  regiao_id: integer("regiao_id"),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

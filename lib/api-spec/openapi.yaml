@@ -1,27 +1,28 @@
 openapi: 3.1.0
 info:
   title: Api
-  version: 0.1.0
-  description: API specification for campanha politica
+  version: 0.2.0
+  description: API specification for campanha politica CRM
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
   - name: auth
-    description: Authentication
   - name: usuarios
-    description: User management
   - name: contatos
-    description: Contact management
+  - name: regioes
+  - name: eventos
+  - name: configuracao
+  - name: dashboard
+  - name: observacoes
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -34,7 +35,6 @@ paths:
     post:
       operationId: login
       tags: [auth]
-      summary: Login with email and password
       requestBody:
         required: true
         content:
@@ -59,7 +59,6 @@ paths:
     post:
       operationId: logout
       tags: [auth]
-      summary: Logout
       responses:
         "200":
           description: Logged out
@@ -72,10 +71,9 @@ paths:
     get:
       operationId: getMe
       tags: [auth]
-      summary: Get current user
       responses:
         "200":
-          description: Current user info
+          description: Current user
           content:
             application/json:
               schema:
@@ -91,13 +89,16 @@ paths:
     get:
       operationId: listUsuarios
       tags: [usuarios]
-      summary: List users (vereador only)
       parameters:
         - name: tipo
           in: query
           schema:
-            type: string
+            type: ["string", "null"]
         - name: coordenador_id
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: regiao_id
           in: query
           schema:
             type: ["integer", "null"]
@@ -113,7 +114,6 @@ paths:
     post:
       operationId: createUsuario
       tags: [usuarios]
-      summary: Create a new user (vereador only)
       requestBody:
         required: true
         content:
@@ -128,7 +128,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Usuario"
         "400":
-          description: Validation error
+          description: Error
           content:
             application/json:
               schema:
@@ -138,7 +138,6 @@ paths:
     get:
       operationId: getUsuario
       tags: [usuarios]
-      summary: Get a user by ID
       parameters:
         - name: id
           in: path
@@ -147,13 +146,13 @@ paths:
             type: integer
       responses:
         "200":
-          description: User found
+          description: User
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Usuario"
         "404":
-          description: User not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -161,7 +160,6 @@ paths:
     patch:
       operationId: updateUsuario
       tags: [usuarios]
-      summary: Update a user
       parameters:
         - name: id
           in: path
@@ -176,13 +174,31 @@ paths:
               $ref: "#/components/schemas/UpdateUsuarioBody"
       responses:
         "200":
-          description: User updated
+          description: Updated user
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Usuario"
         "404":
-          description: User not found
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteUsuario
+      tags: [usuarios]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
           content:
             application/json:
               schema:
@@ -192,7 +208,6 @@ paths:
     get:
       operationId: listContatos
       tags: [contatos]
-      summary: List contacts
       parameters:
         - name: bairro
           in: query
@@ -210,6 +225,14 @@ paths:
           in: query
           schema:
             type: ["integer", "null"]
+        - name: regiao_id
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: busca
+          in: query
+          schema:
+            type: ["string", "null"]
       responses:
         "200":
           description: List of contacts
@@ -222,7 +245,6 @@ paths:
     post:
       operationId: createContato
       tags: [contatos]
-      summary: Create a new contact
       requestBody:
         required: true
         content:
@@ -237,7 +259,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Contato"
         "400":
-          description: Validation error or duplicate phone
+          description: Error
           content:
             application/json:
               schema:
@@ -247,7 +269,6 @@ paths:
     get:
       operationId: getContato
       tags: [contatos]
-      summary: Get a contact by ID
       parameters:
         - name: id
           in: path
@@ -256,13 +277,13 @@ paths:
             type: integer
       responses:
         "200":
-          description: Contact found
+          description: Contact
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Contato"
         "404":
-          description: Contact not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -270,7 +291,6 @@ paths:
     patch:
       operationId: updateContato
       tags: [contatos]
-      summary: Update a contact
       parameters:
         - name: id
           in: path
@@ -285,13 +305,13 @@ paths:
               $ref: "#/components/schemas/UpdateContatoBody"
       responses:
         "200":
-          description: Contact updated
+          description: Updated contact
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Contato"
         "404":
-          description: Contact not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -299,7 +319,6 @@ paths:
     delete:
       operationId: deleteContato
       tags: [contatos]
-      summary: Delete a contact
       parameters:
         - name: id
           in: path
@@ -308,52 +327,338 @@ paths:
             type: integer
       responses:
         "204":
-          description: Contact deleted
+          description: Deleted
         "404":
-          description: Contact not found
+          description: Not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /regioes:
+    get:
+      operationId: listRegioes
+      tags: [regioes]
+      responses:
+        "200":
+          description: List of regions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RegiaoComStats"
+    post:
+      operationId: createRegiao
+      tags: [regioes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRegiaoBody"
+      responses:
+        "201":
+          description: Region created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Regiao"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /regioes/{id}:
+    get:
+      operationId: getRegiao
+      tags: [regioes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Region
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegiaoDetalhe"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateRegiao
+      tags: [regioes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRegiaoBody"
+      responses:
+        "200":
+          description: Updated region
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Regiao"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteRegiao
+      tags: [regioes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /regioes/{id}/observacoes:
+    get:
+      operationId: listObservacoes
+      tags: [observacoes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of observations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ObservacaoRegiao"
+    post:
+      operationId: createObservacao
+      tags: [observacoes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateObservacaoBody"
+      responses:
+        "201":
+          description: Observation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObservacaoRegiao"
+
+  /eventos:
+    get:
+      operationId: listEventos
+      tags: [eventos]
+      parameters:
+        - name: regiao_id
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: tipo_evento
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Evento"
+    post:
+      operationId: createEvento
+      tags: [eventos]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventoBody"
+      responses:
+        "201":
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Evento"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /eventos/{id}:
+    patch:
+      operationId: updateEvento
+      tags: [eventos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEventoBody"
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Evento"
+    delete:
+      operationId: deleteEvento
+      tags: [eventos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /configuracao:
+    get:
+      operationId: getConfiguracao
+      tags: [configuracao]
+      responses:
+        "200":
+          description: Campaign configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Configuracao"
+    patch:
+      operationId: updateConfiguracao
+      tags: [configuracao]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateConfiguracaoBody"
+      responses:
+        "200":
+          description: Updated configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Configuracao"
+
   /dashboard/vereador:
     get:
       operationId: getDashboardVereador
-      tags: [contatos]
-      summary: Vereador dashboard stats
+      tags: [dashboard]
       responses:
         "200":
-          description: Dashboard data
+          description: Vereador dashboard
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/DashboardVereador"
 
-  /dashboard/coordenador:
+  /dashboard/coordenador-geral:
     get:
-      operationId: getDashboardCoordenador
-      tags: [contatos]
-      summary: Coordenador dashboard stats
+      operationId: getDashboardCoordenadorGeral
+      tags: [dashboard]
       responses:
         "200":
-          description: Dashboard data
+          description: Coordenador geral dashboard
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DashboardCoordenador"
+                $ref: "#/components/schemas/DashboardCoordenadorGeral"
+
+  /dashboard/coordenador-regional:
+    get:
+      operationId: getDashboardCoordenadorRegional
+      tags: [dashboard]
+      responses:
+        "200":
+          description: Coordenador regional dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardCoordenadorRegional"
 
   /dashboard/lider:
     get:
       operationId: getDashboardLider
-      tags: [contatos]
-      summary: Lider dashboard stats
+      tags: [dashboard]
       responses:
         "200":
-          description: Dashboard data
+          description: Lider dashboard
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/DashboardLider"
+
+  /evolucao-semanal:
+    get:
+      operationId: getEvolucaoSemanal
+      tags: [dashboard]
+      responses:
+        "200":
+          description: Weekly evolution data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EvolucaoSemanal"
 
 components:
   schemas:
@@ -362,24 +667,21 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
-      required:
-        - error
+      required: [error]
 
     SuccessResponse:
       type: object
       properties:
         success:
           type: boolean
-      required:
-        - success
+      required: [success]
 
     LoginBody:
       type: object
@@ -388,9 +690,7 @@ components:
           type: string
         senha:
           type: string
-      required:
-        - telefone
-        - senha
+      required: [telefone, senha]
 
     LoginResponse:
       type: object
@@ -399,9 +699,7 @@ components:
           $ref: "#/components/schemas/Usuario"
         token:
           type: string
-      required:
-        - usuario
-        - token
+      required: [usuario, token]
 
     Usuario:
       type: object
@@ -413,11 +711,13 @@ components:
         telefone:
           type: ["string", "null"]
         email:
-          type: string
+          type: ["string", "null"]
         tipo:
           type: string
-          enum: [vereador, coordenador, lider]
+          enum: [super_admin, vereador, coordenador_geral, coordenador_regional, lider]
         coordenador_id:
+          type: ["integer", "null"]
+        regiao_id:
           type: ["integer", "null"]
         bairro_regiao:
           type: ["string", "null"]
@@ -426,13 +726,11 @@ components:
         created_at:
           type: string
           format: date-time
-      required:
-        - id
-        - nome
-        - email
-        - tipo
-        - ativo
-        - created_at
+        regiao_nome:
+          type: ["string", "null"]
+        coordenador_nome:
+          type: ["string", "null"]
+      required: [id, nome, tipo, ativo, created_at]
 
     CreateUsuarioBody:
       type: object
@@ -442,23 +740,21 @@ components:
         telefone:
           type: ["string", "null"]
         email:
-          type: string
+          type: ["string", "null"]
         senha:
           type: string
         tipo:
           type: string
-          enum: [vereador, coordenador, lider]
+          enum: [super_admin, vereador, coordenador_geral, coordenador_regional, lider]
         coordenador_id:
+          type: ["integer", "null"]
+        regiao_id:
           type: ["integer", "null"]
         bairro_regiao:
           type: ["string", "null"]
         ativo:
           type: boolean
-      required:
-        - nome
-        - email
-        - senha
-        - tipo
+      required: [nome, senha, tipo]
 
     UpdateUsuarioBody:
       type: object
@@ -472,6 +768,8 @@ components:
         tipo:
           type: ["string", "null"]
         coordenador_id:
+          type: ["integer", "null"]
+        regiao_id:
           type: ["integer", "null"]
         bairro_regiao:
           type: ["string", "null"]
@@ -500,6 +798,8 @@ components:
           type: ["integer", "null"]
         coordenador_id:
           type: ["integer", "null"]
+        regiao_id:
+          type: ["integer", "null"]
         created_at:
           type: string
           format: date-time
@@ -510,13 +810,9 @@ components:
           type: ["string", "null"]
         coordenador_nome:
           type: ["string", "null"]
-      required:
-        - id
-        - nome
-        - telefone
-        - nivel
-        - created_at
-        - updated_at
+        regiao_nome:
+          type: ["string", "null"]
+      required: [id, nome, telefone, nivel, created_at, updated_at]
 
     CreateContatoBody:
       type: object
@@ -538,10 +834,9 @@ components:
           type: ["integer", "null"]
         coordenador_id:
           type: ["integer", "null"]
-      required:
-        - nome
-        - telefone
-        - nivel
+        regiao_id:
+          type: ["integer", "null"]
+      required: [nome, telefone, nivel]
 
     UpdateContatoBody:
       type: object
@@ -562,8 +857,424 @@ components:
           type: ["integer", "null"]
         coordenador_id:
           type: ["integer", "null"]
+        regiao_id:
+          type: ["integer", "null"]
+
+    Regiao:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        descricao:
+          type: ["string", "null"]
+        coordenador_regional_id:
+          type: ["integer", "null"]
+        cor:
+          type: string
+        prioridade:
+          type: string
+          enum: [normal, atencao, prioritaria]
+        observacao_estrategica:
+          type: ["string", "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, nome, cor, prioridade, created_at, updated_at]
+
+    RegiaoComStats:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        descricao:
+          type: ["string", "null"]
+        coordenador_regional_id:
+          type: ["integer", "null"]
+        coordenador_nome:
+          type: ["string", "null"]
+        cor:
+          type: string
+        prioridade:
+          type: string
+          enum: [normal, atencao, prioritaria]
+        observacao_estrategica:
+          type: ["string", "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        total_contatos:
+          type: integer
+        total_simpatizantes:
+          type: integer
+        total_fechados:
+          type: integer
+        total_lideres:
+          type: integer
+      required: [id, nome, cor, prioridade, created_at, updated_at, total_contatos, total_simpatizantes, total_fechados, total_lideres]
+
+    RegiaoDetalhe:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        descricao:
+          type: ["string", "null"]
+        coordenador_regional_id:
+          type: ["integer", "null"]
+        coordenador_nome:
+          type: ["string", "null"]
+        cor:
+          type: string
+        prioridade:
+          type: string
+          enum: [normal, atencao, prioritaria]
+        observacao_estrategica:
+          type: ["string", "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        total_contatos:
+          type: integer
+        total_simpatizantes:
+          type: integer
+        total_fechados:
+          type: integer
+        total_lideres:
+          type: integer
+        lideres:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatsLider"
+        observacoes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ObservacaoRegiao"
+        proximos_eventos:
+          type: array
+          items:
+            $ref: "#/components/schemas/Evento"
+      required: [id, nome, cor, prioridade, created_at, updated_at, total_contatos, total_simpatizantes, total_fechados, total_lideres, lideres, observacoes, proximos_eventos]
+
+    CreateRegiaoBody:
+      type: object
+      properties:
+        nome:
+          type: string
+        descricao:
+          type: ["string", "null"]
+        coordenador_regional_id:
+          type: ["integer", "null"]
+        cor:
+          type: ["string", "null"]
+        prioridade:
+          type: ["string", "null"]
+        observacao_estrategica:
+          type: ["string", "null"]
+      required: [nome]
+
+    UpdateRegiaoBody:
+      type: object
+      properties:
+        nome:
+          type: ["string", "null"]
+        descricao:
+          type: ["string", "null"]
+        coordenador_regional_id:
+          type: ["integer", "null"]
+        cor:
+          type: ["string", "null"]
+        prioridade:
+          type: ["string", "null"]
+        observacao_estrategica:
+          type: ["string", "null"]
+
+    ObservacaoRegiao:
+      type: object
+      properties:
+        id:
+          type: integer
+        regiao_id:
+          type: integer
+        autor_id:
+          type: integer
+        autor_nome:
+          type: ["string", "null"]
+        observacao:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required: [id, regiao_id, autor_id, observacao, created_at]
+
+    CreateObservacaoBody:
+      type: object
+      properties:
+        observacao:
+          type: string
+      required: [observacao]
+
+    Evento:
+      type: object
+      properties:
+        id:
+          type: integer
+        titulo:
+          type: string
+        descricao:
+          type: ["string", "null"]
+        data:
+          type: string
+        hora:
+          type: ["string", "null"]
+        local:
+          type: ["string", "null"]
+        tipo_evento:
+          type: string
+          enum: [reuniao, caminhada, visita, comicio, acao_de_rua, evento_interno]
+        regiao_id:
+          type: ["integer", "null"]
+        regiao_nome:
+          type: ["string", "null"]
+        criado_por:
+          type: integer
+        criado_por_nome:
+          type: ["string", "null"]
+        visibilidade:
+          type: string
+          enum: [geral, regional, lider]
+        coordenador_regional_id:
+          type: ["integer", "null"]
+        lider_id:
+          type: ["integer", "null"]
+        created_at:
+          type: string
+          format: date-time
+      required: [id, titulo, data, tipo_evento, criado_por, visibilidade, created_at]
+
+    CreateEventoBody:
+      type: object
+      properties:
+        titulo:
+          type: string
+        descricao:
+          type: ["string", "null"]
+        data:
+          type: string
+        hora:
+          type: ["string", "null"]
+        local:
+          type: ["string", "null"]
+        tipo_evento:
+          type: string
+          enum: [reuniao, caminhada, visita, comicio, acao_de_rua, evento_interno]
+        regiao_id:
+          type: ["integer", "null"]
+        visibilidade:
+          type: string
+          enum: [geral, regional, lider]
+        coordenador_regional_id:
+          type: ["integer", "null"]
+        lider_id:
+          type: ["integer", "null"]
+      required: [titulo, data, tipo_evento, visibilidade]
+
+    UpdateEventoBody:
+      type: object
+      properties:
+        titulo:
+          type: ["string", "null"]
+        descricao:
+          type: ["string", "null"]
+        data:
+          type: ["string", "null"]
+        hora:
+          type: ["string", "null"]
+        local:
+          type: ["string", "null"]
+        tipo_evento:
+          type: ["string", "null"]
+        regiao_id:
+          type: ["integer", "null"]
+        visibilidade:
+          type: ["string", "null"]
+
+    Configuracao:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome_candidato:
+          type: string
+        foto_principal:
+          type: ["string", "null"]
+        slogan:
+          type: ["string", "null"]
+        numero:
+          type: ["string", "null"]
+        cor_primaria:
+          type: string
+        cor_secundaria:
+          type: string
+        logo:
+          type: ["string", "null"]
+        santinho_imagem:
+          type: ["string", "null"]
+        capa_imagem:
+          type: ["string", "null"]
+        frase_institucional:
+          type: ["string", "null"]
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, nome_candidato, cor_primaria, cor_secundaria, updated_at]
+
+    UpdateConfiguracaoBody:
+      type: object
+      properties:
+        nome_candidato:
+          type: ["string", "null"]
+        foto_principal:
+          type: ["string", "null"]
+        slogan:
+          type: ["string", "null"]
+        numero:
+          type: ["string", "null"]
+        cor_primaria:
+          type: ["string", "null"]
+        cor_secundaria:
+          type: ["string", "null"]
+        logo:
+          type: ["string", "null"]
+        santinho_imagem:
+          type: ["string", "null"]
+        capa_imagem:
+          type: ["string", "null"]
+        frase_institucional:
+          type: ["string", "null"]
+
+    StatsLider:
+      type: object
+      properties:
+        lider_id:
+          type: ["integer", "null"]
+        lider_nome:
+          type: ["string", "null"]
+        total:
+          type: integer
+        simpatizantes:
+          type: integer
+        fechados:
+          type: integer
+      required: [total, simpatizantes, fechados]
+
+    StatsCoordenador:
+      type: object
+      properties:
+        coordenador_id:
+          type: ["integer", "null"]
+        coordenador_nome:
+          type: ["string", "null"]
+        regiao_nome:
+          type: ["string", "null"]
+        total:
+          type: integer
+        simpatizantes:
+          type: integer
+        fechados:
+          type: integer
+        lideres:
+          type: integer
+      required: [total, simpatizantes, fechados, lideres]
+
+    StatsRegiao:
+      type: object
+      properties:
+        regiao_id:
+          type: ["integer", "null"]
+        regiao_nome:
+          type: ["string", "null"]
+        cor:
+          type: ["string", "null"]
+        prioridade:
+          type: ["string", "null"]
+        total:
+          type: integer
+        simpatizantes:
+          type: integer
+        fechados:
+          type: integer
+        lideres:
+          type: integer
+      required: [total, simpatizantes, fechados, lideres]
+
+    EvolucaoSemanal:
+      type: object
+      properties:
+        semana:
+          type: string
+        contatos:
+          type: integer
+        simpatizantes:
+          type: integer
+        fechados:
+          type: integer
+      required: [semana, contatos, simpatizantes, fechados]
 
     DashboardVereador:
+      type: object
+      properties:
+        total_contatos:
+          type: integer
+        total_simpatizantes:
+          type: integer
+        total_fechados:
+          type: integer
+        total_coordenadores:
+          type: integer
+        total_lideres:
+          type: integer
+        total_regioes:
+          type: integer
+        crescimento_semana:
+          type: integer
+        por_coordenador:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatsCoordenador"
+        por_regiao:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatsRegiao"
+        ranking_lideres:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatsLider"
+        proximos_eventos:
+          type: array
+          items:
+            $ref: "#/components/schemas/Evento"
+        alertas:
+          type: array
+          items:
+            type: string
+      required: [total_contatos, total_simpatizantes, total_fechados, total_coordenadores, total_lideres, total_regioes, crescimento_semana, por_coordenador, por_regiao, ranking_lideres, proximos_eventos, alertas]
+
+    DashboardCoordenadorGeral:
       type: object
       properties:
         total_contatos:
@@ -580,51 +1291,21 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/StatsCoordenador"
-        por_bairro:
+        por_regiao:
           type: array
           items:
-            $ref: "#/components/schemas/StatsBairro"
-      required:
-        - total_contatos
-        - total_simpatizantes
-        - total_fechados
-        - total_coordenadores
-        - total_lideres
-        - por_coordenador
-        - por_bairro
+            $ref: "#/components/schemas/StatsRegiao"
+        ranking_lideres:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatsLider"
+        proximos_eventos:
+          type: array
+          items:
+            $ref: "#/components/schemas/Evento"
+      required: [total_contatos, total_simpatizantes, total_fechados, total_coordenadores, total_lideres, por_coordenador, por_regiao, ranking_lideres, proximos_eventos]
 
-    StatsCoordenador:
-      type: object
-      properties:
-        coordenador_id:
-          type: ["integer", "null"]
-        coordenador_nome:
-          type: ["string", "null"]
-        total:
-          type: integer
-        simpatizantes:
-          type: integer
-        fechados:
-          type: integer
-        lideres:
-          type: integer
-      required:
-        - total
-        - simpatizantes
-        - fechados
-        - lideres
-
-    StatsBairro:
-      type: object
-      properties:
-        bairro:
-          type: ["string", "null"]
-        total:
-          type: integer
-      required:
-        - total
-
-    DashboardCoordenador:
+    DashboardCoordenadorRegional:
       type: object
       properties:
         total_base:
@@ -635,34 +1316,23 @@ components:
           type: integer
         total_lideres:
           type: integer
+        regiao_nome:
+          type: ["string", "null"]
+        regiao_prioridade:
+          type: ["string", "null"]
         ranking_lideres:
           type: array
           items:
             $ref: "#/components/schemas/StatsLider"
-      required:
-        - total_base
-        - total_simpatizantes
-        - total_fechados
-        - total_lideres
-        - ranking_lideres
-
-    StatsLider:
-      type: object
-      properties:
-        lider_id:
-          type: ["integer", "null"]
-        lider_nome:
-          type: ["string", "null"]
-        total:
-          type: integer
-        simpatizantes:
-          type: integer
-        fechados:
-          type: integer
-      required:
-        - total
-        - simpatizantes
-        - fechados
+        proximos_eventos:
+          type: array
+          items:
+            $ref: "#/components/schemas/Evento"
+        ultimas_movimentacoes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Contato"
+      required: [total_base, total_simpatizantes, total_fechados, total_lideres, ranking_lideres, proximos_eventos, ultimas_movimentacoes]
 
     DashboardLider:
       type: object
@@ -673,12 +1343,14 @@ components:
           type: integer
         total_fechados:
           type: integer
+        regiao_nome:
+          type: ["string", "null"]
         ultimos_cadastrados:
           type: array
           items:
             $ref: "#/components/schemas/Contato"
-      required:
-        - total_contatos
-        - total_simpatizantes
-        - total_fechados
-        - ultimos_cadastrados
+        proximos_eventos:
+          type: array
+          items:
+            $ref: "#/components/schemas/Evento"
+      required: [total_contatos, total_simpatizantes, total_fechados, ultimos_cadastrados, proximos_eventos]

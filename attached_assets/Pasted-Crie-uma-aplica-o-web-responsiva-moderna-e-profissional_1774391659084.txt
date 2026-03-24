@@ -1,0 +1,496 @@
+Crie uma aplicação web responsiva, moderna e profissional para gestão de campanha política municipal, funcionando muito bem no celular e no desktop.
+
+OBJETIVO DO SISTEMA
+O sistema deve ser um CRM eleitoral hierárquico com dashboards por perfil, foco territorial, mapa estratégico, agenda compartilhada, lembretes internos e personalização completa da identidade da campanha.
+
+O sistema precisa ser simples de usar, rápido para cadastrar pessoas e claro para tomada de decisão.
+
+ARQUITETURA DE PERFIS
+Crie os seguintes perfis de acesso:
+
+1. super_admin
+- controla tudo
+- pode configurar a campanha
+- pode gerenciar usuários, regiões, identidade visual e agenda
+- vê tudo
+
+2. vereador
+- vê visão geral completa da campanha
+- acessa dashboard estratégico
+- vê mapa, regiões prioritárias, coordenadores, líderes, agenda, alertas e evolução da base
+
+3. coordenador_geral
+- tem quase a mesma visão do vereador
+- acompanha toda a operação
+- pode gerenciar coordenadores regionais, líderes, regiões prioritárias e agenda
+- vê tudo ou quase tudo
+
+4. coordenador_regional
+- vê apenas sua região e os líderes abaixo dele
+- acompanha base da equipe
+- pode cadastrar contatos
+- pode marcar regiões da sua área como prioritárias
+- pode criar observações estratégicas da sua região
+- vê agenda e eventos relacionados à sua área
+
+5. lider
+- vê apenas sua base
+- pode cadastrar contatos
+- pode editar seus contatos
+- vê seus números, sua região, sua meta e últimas movimentações
+
+HIERARQUIA DO SISTEMA
+A hierarquia deve funcionar assim:
+
+vereador / coordenador_geral
+→ coordenador_regional
+→ lider
+→ contatos
+
+REGRAS DE ACESSO
+- somente coordenadores regionais e líderes podem cadastrar contatos
+- vereador e coordenador geral não precisam cadastrar contatos, mas podem visualizar tudo
+- cada líder vê apenas os contatos vinculados a ele
+- cada coordenador regional vê apenas os líderes e contatos abaixo dele
+- vereador e coordenador geral veem toda a campanha
+- cada usuário, após login, deve cair direto no dashboard do seu perfil
+- o sistema deve bloquear visualização fora da hierarquia
+
+LOGIN
+O login deve ser simples e rápido.
+Use autenticação com:
+- telefone ou e-mail
+- senha
+
+Ao entrar, o sistema deve redirecionar automaticamente para o dashboard correto do perfil.
+
+NÍVEIS DOS CONTATOS
+Para simplificar o uso, use apenas 3 níveis:
+
+1. contato
+2. simpatizante
+3. fechado
+
+Esses níveis devem aparecer de forma muito simples no cadastro e na edição, preferencialmente com botões ou seletor visual fácil.
+
+REGIÕES E FOCO TERRITORIAL
+O sistema deve ter um módulo de regiões.
+
+Cada região deve ter:
+- id
+- nome
+- bairro ou agrupamento de bairros
+- coordenador_regional_responsavel
+- cor identificadora
+- prioridade (normal, atenção, prioritária)
+- observacao_estrategica
+- created_at
+- updated_at
+
+Funcionalidade importante:
+- vereador, coordenador geral e coordenador regional podem marcar uma região como “prioritária” ou “em observação”
+- essas regiões devem aparecer destacadas no dashboard e no mapa
+- mesmo marcando regiões prioritárias, o sistema não pode esconder as outras; deve manter visão geral
+
+MAPA ESTRATÉGICO
+O sistema deve ter um mapa visual da cidade ou das regiões da campanha.
+
+Objetivo do mapa:
+- mostrar claramente quais regiões estão mais fortes
+- mostrar quais regiões estão fracas
+- mostrar regiões prioritárias
+- permitir clicar na região e abrir detalhes
+
+Cada região no mapa deve exibir visualmente:
+- total de contatos
+- total de simpatizantes
+- total de fechados
+- coordenador responsável
+- líderes ativos
+- status de prioridade
+
+Use cores simples e intuitivas:
+- verde = região forte
+- amarelo = média
+- vermelho = fraca
+- azul = prioritária/em observação
+
+Ao clicar em uma região no mapa, abrir um painel lateral ou modal com:
+- nome da região
+- total de contatos
+- simpatizantes
+- fechados
+- coordenador responsável
+- líderes da área
+- últimas movimentações
+- próximas reuniões/eventos daquela região
+- observações estratégicas
+
+DASHBOARD DO VEREADOR
+O dashboard do vereador precisa ser muito bonito, claro, elegante e útil para tomada de decisão.
+
+Ele deve conter:
+
+TOPO
+- foto do candidato
+- nome
+- número
+- slogan
+- identidade visual da campanha
+- próximo evento ou reunião
+
+CARDS PRINCIPAIS
+- base total
+- total de simpatizantes
+- total de fechados
+- crescimento da semana
+- regiões prioritárias
+- reuniões da semana
+- alertas ativos
+
+GRÁFICOS
+- evolução semanal de contatos
+- evolução semanal de simpatizantes
+- evolução semanal de fechados
+- distribuição por coordenador regional
+- distribuição por região
+
+MAPA CENTRAL
+- mapa estratégico das regiões da cidade
+
+RANKINGS
+- ranking de coordenadores regionais
+- ranking de líderes
+- regiões mais fortes
+- regiões que precisam reforço
+
+ALERTAS
+- regiões sem atualização há muitos dias
+- líderes inativos
+- coordenadores com baixa movimentação
+- regiões com muita base de contato, mas poucos fechados
+- reuniões próximas
+
+ÁREA DE FOCO
+- seção destacada com “Regiões Prioritárias”
+- seção destacada com “Regiões em Observação”
+
+DASHBOARD DO COORDENADOR GERAL
+Deve ser parecido com o do vereador, mas mais operacional.
+
+Mostrar:
+- total da base da campanha
+- total por coordenador regional
+- total por região
+- ranking de líderes
+- mapa
+- regiões prioritárias
+- regiões que precisam de reforço
+- agenda geral
+- alertas operacionais
+
+DASHBOARD DO COORDENADOR REGIONAL
+Mostrar:
+- nome da região
+- total de líderes abaixo dele
+- total de contatos da região
+- simpatizantes
+- fechados
+- ranking dos líderes da sua área
+- regiões prioritárias da sua área
+- últimas movimentações
+- reuniões e eventos da sua área
+- botão para cadastrar contato
+- botão para marcar região como prioritária
+- área para registrar observações estratégicas da região
+
+DASHBOARD DO LÍDER
+O dashboard do líder deve ser o mais simples e rápido do sistema.
+
+Mostrar:
+- meu nome
+- minha região
+- total da minha base
+- simpatizantes
+- fechados
+- contatos recentes
+- botão grande “Cadastrar pessoa”
+- botão para ver lista de contatos
+- contatos sem atualização
+
+CADASTRO DE CONTATOS
+Somente líder e coordenador regional podem cadastrar contatos.
+
+Campos do contato:
+- id
+- nome
+- telefone
+- bairro
+- rua_referencia
+- nivel (contato, simpatizante, fechado)
+- observacao
+- lider_id
+- coordenador_regional_id
+- regiao_id
+- created_at
+- updated_at
+
+REGRAS DO CADASTRO
+- telefone não pode duplicar
+- ao cadastrar um contato, o sistema deve herdar automaticamente o coordenador regional e a região com base no líder logado
+- o cadastro deve ser muito rápido
+- a interface deve ser limpa e pensada para uso em campo
+
+AGENDA E REUNIÕES
+Criar um módulo de agenda compartilhada da campanha.
+
+Tipos de evento:
+- reunião
+- caminhada
+- visita
+- comício
+- ação de rua
+- evento interno
+
+Campos:
+- id
+- titulo
+- descricao
+- data
+- hora
+- local
+- regiao_id
+- tipo_evento
+- criado_por
+- perfis_impactados
+- coordenador_regional_id opcional
+- lider_id opcional
+- created_at
+
+FUNCIONALIDADES DA AGENDA
+- ao criar uma reunião ou evento, ele deve aparecer nos dashboards dos perfis relacionados
+- se o evento for geral, aparece para todos
+- se for regional, aparece só para quem pertence àquela região
+- deve existir uma área de lembretes no dashboard
+- a agenda deve mostrar próximos eventos, atrasados e concluídos
+
+PERSONALIZAÇÃO DA CAMPANHA
+Criar um módulo de configuração visual da campanha com:
+
+Campos:
+- nome do candidato
+- foto principal
+- slogan
+- número
+- cores principais da campanha
+- logo
+- imagem do santinho
+- imagem de capa
+- frase institucional
+
+Essas informações devem personalizar:
+- login
+- sidebar
+- topo dos dashboards
+- tela inicial
+- cabeçalhos
+- cartões visuais
+
+RANKINGS E MÉTRICAS
+O sistema deve calcular e mostrar:
+
+- total de contatos
+- total de simpatizantes
+- total de fechados
+- total por líder
+- total por coordenador regional
+- total por região
+- crescimento semanal
+- líderes mais produtivos
+- coordenadores mais produtivos
+- regiões mais fortes
+- regiões mais fracas
+- regiões prioritárias
+- regiões sem atualização
+
+LISTA DE CONTATOS
+Criar uma tela de listagem de contatos com:
+- busca por nome
+- filtro por nível
+- filtro por bairro
+- filtro por região
+- filtro por líder
+- filtro por coordenador regional
+
+Cada item da lista deve mostrar:
+- nome
+- telefone
+- bairro
+- nível
+- líder responsável
+- região
+
+DETALHE DO CONTATO
+Criar tela/modal de detalhe com:
+- dados completos
+- observações
+- data de criação
+- responsável
+- botão para editar
+
+MÓDULO DE OBSERVAÇÕES ESTRATÉGICAS
+Cada região deve ter uma área de observações estratégicas, visível para:
+- vereador
+- coordenador geral
+- coordenador regional daquela região
+
+Exemplos:
+- bairro forte
+- liderança local importante
+- resistência em determinada rua
+- ação marcada
+- promessa relevante
+- problema político local
+
+BANCO DE DADOS
+Gerar SQL completo para Supabase com as tabelas:
+
+1. usuarios
+- id
+- nome
+- telefone
+- email
+- senha_auth
+- tipo
+- coordenador_regional_id nullable
+- regiao_id nullable
+- ativo
+- created_at
+
+2. regioes
+- id
+- nome
+- descricao
+- coordenador_regional_id
+- cor
+- prioridade
+- observacao_estrategica
+- created_at
+- updated_at
+
+3. contatos
+- id
+- nome
+- telefone unique
+- bairro
+- rua_referencia
+- nivel
+- observacao
+- lider_id
+- coordenador_regional_id
+- regiao_id
+- created_at
+- updated_at
+
+4. eventos
+- id
+- titulo
+- descricao
+- data
+- hora
+- local
+- tipo_evento
+- regiao_id nullable
+- criado_por
+- visibilidade
+- created_at
+
+5. configuracao_campanha
+- id
+- nome_candidato
+- foto_principal
+- slogan
+- numero
+- cor_primaria
+- cor_secundaria
+- logo
+- santinho_imagem
+- capa_imagem
+- frase_institucional
+- updated_at
+
+6. observacoes_regiao
+- id
+- regiao_id
+- autor_id
+- observacao
+- created_at
+
+SEGURANÇA E ACESSO
+Usar Supabase com regras de acesso por perfil.
+Aplicar RLS para garantir:
+- líder só vê seus contatos
+- coordenador regional vê sua região e seus líderes
+- vereador e coordenador geral veem tudo
+- somente perfis autorizados podem editar regiões, agenda e personalização
+
+INTERFACE
+A interface deve ser:
+- moderna
+- bonita
+- clara
+- profissional
+- responsiva
+- excelente no celular
+- excelente no desktop
+- simples para o líder
+- estratégica para o vereador
+
+ESTILO VISUAL
+Usar:
+- Next.js
+- TypeScript
+- Tailwind CSS
+- shadcn/ui para componentes
+- Recharts para gráficos
+
+No layout:
+- sidebar elegante
+- cards grandes e claros
+- gráficos bonitos
+- mapa central chamativo no dashboard do vereador
+- uso das cores da campanha
+- design com cara de produto premium
+
+ESTRUTURA TÉCNICA
+Usar:
+- Next.js
+- TypeScript
+- Tailwind
+- shadcn/ui
+- Supabase
+- Recharts
+
+ENTREGA ESPERADA
+Gerar:
+1. estrutura de pastas completa
+2. páginas iniciais
+3. componentes reutilizáveis
+4. SQL do banco
+5. integração com Supabase
+6. autenticação
+7. dashboards por perfil
+8. CRUD de contatos
+9. CRUD de regiões
+10. agenda e lembretes
+11. configuração visual da campanha
+12. mapa estratégico simples
+13. layout funcional e bonito
+14. README com instruções de setup
+
+IMPORTANTE
+- priorizar simplicidade de uso
+- priorizar clareza para tomada de decisão
+- evitar excesso de complexidade
+- fazer primeiro uma versão funcional, bonita e escalável
+- foco total em produtividade real de campanha

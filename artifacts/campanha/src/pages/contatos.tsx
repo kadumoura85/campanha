@@ -10,53 +10,49 @@ interface Contato {
   nome: string;
   telefone: string;
   bairro: string | null;
-  rua_referencia: string | null;
   nivel: string;
-  observacao: string | null;
   lider_id: number | null;
   coordenador_id: number | null;
-  created_at: string;
+  regiao_id: number | null;
   lider_nome: string | null;
   coordenador_nome: string | null;
+  regiao_nome: string | null;
 }
+
+const NIVEIS = [
+  { value: "", label: "Todos" },
+  { value: "contato", label: "Contato" },
+  { value: "simpatizante", label: "Simpatizante" },
+  { value: "fechado", label: "Fechado" },
+];
 
 export default function ContatosPage() {
   const { usuario } = useAuth();
   const [, navigate] = useLocation();
   const [contatos, setContatos] = useState<Contato[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [filtroBairro, setFiltroBairro] = useState("");
   const [filtroNivel, setFiltroNivel] = useState("");
-  const [buscaNome, setBuscaNome] = useState("");
+  const [busca, setBusca] = useState("");
 
-  const carregarContatos = () => {
+  const podeCadastrar = ["lider", "coordenador_regional", "super_admin"].includes(usuario?.tipo || "");
+  const podeEditar = ["lider", "coordenador_regional", "super_admin", "coordenador_geral", "vereador"].includes(usuario?.tipo || "");
+
+  const load = () => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (filtroBairro) params.set("bairro", filtroBairro);
     if (filtroNivel) params.set("nivel", filtroNivel);
-    const url = `/api/contatos${params.toString() ? "?" + params.toString() : ""}`;
-    apiGet<Contato[]>(url)
+    if (busca) params.set("busca", busca);
+    apiGet<Contato[]>(`/api/contatos${params.toString() ? "?" + params.toString() : ""}`)
       .then(setContatos)
-      .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    carregarContatos();
-  }, [filtroBairro, filtroNivel]);
+  useEffect(() => { load(); }, [filtroNivel]);
 
-  const bairrosUnicos = [...new Set(contatos.map((c) => c.bairro).filter(Boolean))];
-
-  const contatosFiltrados = buscaNome
-    ? contatos.filter((c) =>
-        c.nome.toLowerCase().includes(buscaNome.toLowerCase()) ||
-        c.telefone.includes(buscaNome)
-      )
-    : contatos;
-
-  const podeEditar = usuario?.tipo === "lider" || usuario?.tipo === "coordenador";
-  const podeCadastrar = usuario?.tipo === "lider" || usuario?.tipo === "coordenador";
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    load();
+  };
 
   return (
     <Layout>
@@ -64,67 +60,49 @@ export default function ContatosPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Contatos</h1>
-            <p className="text-sm text-gray-500">{contatosFiltrados.length} encontrados</p>
+            <p className="text-sm text-gray-500">{contatos.length} encontrados</p>
           </div>
           {podeCadastrar && (
-            <button
-              onClick={() => navigate("/contatos/novo")}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-xl text-sm transition-colors"
-            >
+            <button onClick={() => navigate("/contatos/novo")}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-xl text-sm">
               + Novo
             </button>
           )}
         </div>
 
         {/* Search */}
-        <div className="mb-3">
-          <input
-            type="search"
-            placeholder="Buscar por nome ou telefone..."
-            value={buscaNome}
-            onChange={(e) => setBuscaNome(e.target.value)}
-            className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+        <form onSubmit={handleSearch} className="mb-3">
+          <div className="flex gap-2">
+            <input
+              type="search"
+              placeholder="Buscar por nome..."
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              className="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button type="submit" className="bg-blue-600 text-white px-4 rounded-xl text-sm font-medium">
+              Buscar
+            </button>
+          </div>
+        </form>
 
-        {/* Filters */}
-        <div className="flex gap-2 mb-4">
-          <select
-            value={filtroNivel}
-            onChange={(e) => setFiltroNivel(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            <option value="">Todos os níveis</option>
-            <option value="contato">Contato</option>
-            <option value="simpatizante">Simpatizante</option>
-            <option value="fechado">Fechado</option>
-          </select>
-
-          <select
-            value={filtroBairro}
-            onChange={(e) => setFiltroBairro(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            <option value="">Todos os bairros</option>
-            {bairrosUnicos.map((b) => (
-              <option key={b} value={b!}>{b}</option>
-            ))}
-          </select>
+        {/* Filtro Nível */}
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+          {NIVEIS.map(n => (
+            <button key={n.value} onClick={() => setFiltroNivel(n.value)}
+              className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${filtroNivel === n.value ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+              {n.label}
+            </button>
+          ))}
         </div>
 
         {loading && (
           <div className="text-center py-12">
-            <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
           </div>
         )}
 
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
-        {!loading && !error && contatosFiltrados.length === 0 && (
+        {!loading && contatos.length === 0 && (
           <div className="text-center py-12 text-gray-400">
             <p className="text-4xl mb-2">👥</p>
             <p className="text-sm">Nenhum contato encontrado</p>
@@ -132,30 +110,28 @@ export default function ContatosPage() {
         )}
 
         <div className="space-y-2">
-          {contatosFiltrados.map((contato) => (
-            <div
-              key={contato.id}
-              className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3"
-            >
+          {contatos.map((c) => (
+            <div key={c.id} className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm flex-shrink-0">
-                {contato.nome.charAt(0).toUpperCase()}
+                {c.nome.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <p className="font-medium text-gray-900 truncate text-sm">{contato.nome}</p>
-                  <NivelBadge nivel={contato.nivel} />
+                  <p className="font-semibold text-gray-900 truncate text-sm">{c.nome}</p>
+                  <NivelBadge nivel={c.nivel} />
                 </div>
-                <p className="text-xs text-gray-500">{contato.telefone}</p>
-                {contato.bairro && <p className="text-xs text-gray-400">{contato.bairro}</p>}
-                {(usuario?.tipo === "coordenador" || usuario?.tipo === "vereador") && contato.lider_nome && (
-                  <p className="text-xs text-blue-400">👤 {contato.lider_nome}</p>
+                <p className="text-xs text-gray-500">{c.telefone}</p>
+                <div className="flex gap-2 mt-0.5">
+                  {c.bairro && <p className="text-xs text-gray-400">📍 {c.bairro}</p>}
+                  {c.regiao_nome && <p className="text-xs text-gray-400">🗺️ {c.regiao_nome}</p>}
+                </div>
+                {["coordenador_regional", "coordenador_geral", "vereador", "super_admin"].includes(usuario?.tipo || "") && c.lider_nome && (
+                  <p className="text-xs text-blue-400 mt-0.5">👤 {c.lider_nome}</p>
                 )}
               </div>
               {podeEditar && (
-                <button
-                  onClick={() => navigate(`/contatos/${contato.id}/editar`)}
-                  className="text-xs text-gray-400 hover:text-blue-600 transition-colors px-2 py-1 rounded-lg hover:bg-blue-50"
-                >
+                <button onClick={() => navigate(`/contatos/${c.id}/editar`)}
+                  className="text-xs text-gray-400 hover:text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-50">
                   Editar
                 </button>
               )}

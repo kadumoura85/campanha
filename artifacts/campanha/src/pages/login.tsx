@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { getDashboardPath } from "@/App";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -16,9 +17,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const usuario = await login(telefone, senha);
-      if (usuario.tipo === "vereador") navigate("/dashboard/vereador");
-      else if (usuario.tipo === "coordenador") navigate("/dashboard/coordenador");
-      else navigate("/dashboard/lider");
+      navigate(getDashboardPath(usuario.tipo));
     } catch (err: any) {
       setError(err.message || "Erro ao fazer login");
     } finally {
@@ -26,14 +25,17 @@ export default function LoginPage() {
     }
   };
 
+  const fillDemo = (tel: string) => {
+    setTelefone(tel);
+    setSenha("123456");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 backdrop-blur mb-4">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
+            <span className="text-3xl">🏛️</span>
           </div>
           <h1 className="text-2xl font-bold text-white">Campanha Política</h1>
           <p className="text-blue-200 text-sm mt-1">Sistema de gestão eleitoral</p>
@@ -55,10 +57,11 @@ export default function LoginPage() {
                 type="tel"
                 value={telefone}
                 onChange={(e) => setTelefone(e.target.value)}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="(11) 99999-9999"
                 required
                 autoFocus
+                autoComplete="username"
               />
             </div>
 
@@ -68,16 +71,17 @@ export default function LoginPage() {
                 type="password"
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="••••••••"
                 required
+                autoComplete="current-password"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Entrando..." : "Entrar"}
             </button>
@@ -85,11 +89,20 @@ export default function LoginPage() {
 
           <div className="mt-6 pt-4 border-t border-gray-100">
             <p className="text-xs text-gray-500 text-center mb-2 font-medium">Acesso de demonstração</p>
-            <div className="grid grid-cols-1 gap-1 text-xs text-gray-500">
-              <p>🏛️ 11999990001 (Vereador)</p>
-              <p>📋 11999990002 (Coordenador)</p>
-              <p>👤 11999990004 (Líder)</p>
-              <p className="text-gray-400 mt-1">Senha: 123456</p>
+            <div className="grid grid-cols-1 gap-1">
+              {[
+                { tel: "11999990001", label: "Vereador", icon: "🏛️" },
+                { tel: "11999990002", label: "Coord. Regional", icon: "📍" },
+                { tel: "11999990003", label: "Coord. Geral", icon: "📋" },
+                { tel: "11999990004", label: "Líder", icon: "👤" },
+              ].map(d => (
+                <button key={d.tel} onClick={() => fillDemo(d.tel)}
+                  className="flex items-center gap-2 text-xs text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg px-2 py-1 transition-colors text-left">
+                  <span>{d.icon}</span>
+                  <span>{d.tel} ({d.label})</span>
+                </button>
+              ))}
+              <p className="text-xs text-gray-400 mt-1 px-2">Senha: 123456</p>
             </div>
           </div>
         </div>

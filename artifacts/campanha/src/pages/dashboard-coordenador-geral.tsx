@@ -3,7 +3,8 @@ import { useLocation } from "wouter";
 import Layout from "@/components/Layout";
 import { apiGet } from "@/lib/api";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
 } from "recharts";
 
 interface StatsCoordenador {
@@ -67,6 +68,12 @@ export default function DashboardCoordenadorGeralPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const pieData = data ? [
+    { name: "Contatos", value: Math.max(0, data.total_contatos - data.total_simpatizantes - data.total_fechados), color: "#6B7280" },
+    { name: "Simpatizantes", value: data.total_simpatizantes, color: "#F59E0B" },
+    { name: "Fechados", value: data.total_fechados, color: "#10B981" },
+  ].filter(d => d.value > 0) : [];
+
   return (
     <Layout>
       <div className="p-4 max-w-2xl mx-auto">
@@ -110,12 +117,12 @@ export default function DashboardCoordenadorGeralPage() {
               </div>
             </div>
 
-            {/* Por Região Bar Chart */}
+            {/* 1. Por Região */}
             {data.por_regiao.length > 0 && (
               <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-semibold text-gray-700">Por Região</h2>
-                  <button onClick={() => navigate("/regioes")} className="text-xs text-blue-600">Ver →</button>
+                  <button onClick={() => navigate("/regioes")} className="text-xs text-teal-600">Ver →</button>
                 </div>
                 <ResponsiveContainer width="100%" height={180}>
                   <BarChart data={data.por_regiao.map(r => ({ name: r.regiao_nome || "Sem reg.", total: r.total, fechados: r.fechados }))}>
@@ -126,6 +133,22 @@ export default function DashboardCoordenadorGeralPage() {
                     <Bar dataKey="total" name="Total" fill="#14B8A6" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="fechados" name="Fechados" fill="#10B981" radius={[4, 4, 0, 0]} />
                   </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* 2. Distribuição da Base */}
+            {pieData.length > 0 && (
+              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
+                <h2 className="text-sm font-semibold text-gray-700 mb-3">Distribuição da Base</h2>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
+                      {pieData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
                 </ResponsiveContainer>
               </div>
             )}
@@ -181,7 +204,7 @@ export default function DashboardCoordenadorGeralPage() {
               <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-semibold text-gray-700">📅 Próximos Eventos</h2>
-                  <button onClick={() => navigate("/agenda")} className="text-xs text-blue-600">Ver →</button>
+                  <button onClick={() => navigate("/agenda")} className="text-xs text-teal-600">Ver →</button>
                 </div>
                 <div className="space-y-2">
                   {data.proximos_eventos.map((e) => (

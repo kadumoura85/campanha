@@ -237,49 +237,6 @@ export default function DashboardVereadorPage() {
               </div>
             </div>
 
-            {/* Evolução Semanal */}
-            {evolucaoChart.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-700 mb-3">📈 Evolução Semanal</h2>
-                <ResponsiveContainer width="100%" height={180}>
-                  <AreaChart data={evolucaoChart}>
-                    <defs>
-                      <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={primary} stopOpacity={0.3} />
-                        <stop offset="95%" stopColor={primary} stopOpacity={0.02} />
-                      </linearGradient>
-                      <linearGradient id="colorFechados" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#10B981" stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="semana" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 10 }} />
-                    <Tooltip />
-                    <Area type="monotone" dataKey="Total" stroke={primary} strokeWidth={2} fill="url(#colorTotal)" name="Total" />
-                    <Area type="monotone" dataKey="Fechados" stroke="#10B981" strokeWidth={2} fill="url(#colorFechados)" name="Fechados" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* Pie Chart */}
-            {pieData.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-700 mb-3">Distribuição da Base</h2>
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
-                      {pieData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
             {/* Por Região */}
             {data.por_regiao.length > 0 && (
               <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
@@ -306,6 +263,49 @@ export default function DashboardVereadorPage() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Distribuição da Base */}
+            {pieData.length > 0 && (
+              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
+                <h2 className="text-sm font-semibold text-gray-700 mb-3">Distribuição da Base</h2>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
+                      {pieData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Evolução Semanal */}
+            {evolucaoChart.length > 0 && (
+              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
+                <h2 className="text-sm font-semibold text-gray-700 mb-3">📈 Evolução Semanal</h2>
+                <ResponsiveContainer width="100%" height={180}>
+                  <AreaChart data={evolucaoChart}>
+                    <defs>
+                      <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={primary} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={primary} stopOpacity={0.02} />
+                      </linearGradient>
+                      <linearGradient id="colorFechados" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#10B981" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="semana" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip />
+                    <Area type="monotone" dataKey="Total" stroke={primary} strokeWidth={2} fill="url(#colorTotal)" name="Total" />
+                    <Area type="monotone" dataKey="Fechados" stroke="#10B981" strokeWidth={2} fill="url(#colorFechados)" name="Fechados" />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             )}
 

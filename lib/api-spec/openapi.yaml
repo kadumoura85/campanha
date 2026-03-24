@@ -1,15 +1,20 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: API specification for campanha politica
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: usuarios
+    description: User management
+  - name: contatos
+    description: Contact management
 paths:
   /healthz:
     get:
@@ -24,6 +29,332 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /usuarios:
+    get:
+      operationId: listUsuarios
+      tags: [usuarios]
+      summary: List users (vereador only)
+      parameters:
+        - name: tipo
+          in: query
+          schema:
+            type: string
+        - name: coordenador_id
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Usuario"
+    post:
+      operationId: createUsuario
+      tags: [usuarios]
+      summary: Create a new user (vereador only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUsuarioBody"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /usuarios/{id}:
+    get:
+      operationId: getUsuario
+      tags: [usuarios]
+      summary: Get a user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateUsuario
+      tags: [usuarios]
+      summary: Update a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUsuarioBody"
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /contatos:
+    get:
+      operationId: listContatos
+      tags: [contatos]
+      summary: List contacts
+      parameters:
+        - name: bairro
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: nivel
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: lider_id
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: coordenador_id
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Contato"
+    post:
+      operationId: createContato
+      tags: [contatos]
+      summary: Create a new contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContatoBody"
+      responses:
+        "201":
+          description: Contact created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contato"
+        "400":
+          description: Validation error or duplicate phone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /contatos/{id}:
+    get:
+      operationId: getContato
+      tags: [contatos]
+      summary: Get a contact by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Contact found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contato"
+        "404":
+          description: Contact not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateContato
+      tags: [contatos]
+      summary: Update a contact
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContatoBody"
+      responses:
+        "200":
+          description: Contact updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contato"
+        "404":
+          description: Contact not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteContato
+      tags: [contatos]
+      summary: Delete a contact
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Contact deleted
+        "404":
+          description: Contact not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /dashboard/vereador:
+    get:
+      operationId: getDashboardVereador
+      tags: [contatos]
+      summary: Vereador dashboard stats
+      responses:
+        "200":
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardVereador"
+
+  /dashboard/coordenador:
+    get:
+      operationId: getDashboardCoordenador
+      tags: [contatos]
+      summary: Coordenador dashboard stats
+      responses:
+        "200":
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardCoordenador"
+
+  /dashboard/lider:
+    get:
+      operationId: getDashboardLider
+      tags: [contatos]
+      summary: Lider dashboard stats
+      responses:
+        "200":
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardLider"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +365,320 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+        senha:
+          type: string
+      required:
+        - email
+        - senha
+
+    LoginResponse:
+      type: object
+      properties:
+        usuario:
+          $ref: "#/components/schemas/Usuario"
+        token:
+          type: string
+      required:
+        - usuario
+        - token
+
+    Usuario:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        telefone:
+          type: ["string", "null"]
+        email:
+          type: string
+        tipo:
+          type: string
+          enum: [vereador, coordenador, lider]
+        coordenador_id:
+          type: ["integer", "null"]
+        bairro_regiao:
+          type: ["string", "null"]
+        ativo:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - nome
+        - email
+        - tipo
+        - ativo
+        - created_at
+
+    CreateUsuarioBody:
+      type: object
+      properties:
+        nome:
+          type: string
+        telefone:
+          type: ["string", "null"]
+        email:
+          type: string
+        senha:
+          type: string
+        tipo:
+          type: string
+          enum: [vereador, coordenador, lider]
+        coordenador_id:
+          type: ["integer", "null"]
+        bairro_regiao:
+          type: ["string", "null"]
+        ativo:
+          type: boolean
+      required:
+        - nome
+        - email
+        - senha
+        - tipo
+
+    UpdateUsuarioBody:
+      type: object
+      properties:
+        nome:
+          type: ["string", "null"]
+        telefone:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        tipo:
+          type: ["string", "null"]
+        coordenador_id:
+          type: ["integer", "null"]
+        bairro_regiao:
+          type: ["string", "null"]
+        ativo:
+          type: ["boolean", "null"]
+
+    Contato:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        telefone:
+          type: string
+        bairro:
+          type: ["string", "null"]
+        rua_referencia:
+          type: ["string", "null"]
+        nivel:
+          type: string
+          enum: [contato, simpatizante, fechado]
+        observacao:
+          type: ["string", "null"]
+        lider_id:
+          type: ["integer", "null"]
+        coordenador_id:
+          type: ["integer", "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        lider_nome:
+          type: ["string", "null"]
+        coordenador_nome:
+          type: ["string", "null"]
+      required:
+        - id
+        - nome
+        - telefone
+        - nivel
+        - created_at
+        - updated_at
+
+    CreateContatoBody:
+      type: object
+      properties:
+        nome:
+          type: string
+        telefone:
+          type: string
+        bairro:
+          type: ["string", "null"]
+        rua_referencia:
+          type: ["string", "null"]
+        nivel:
+          type: string
+          enum: [contato, simpatizante, fechado]
+        observacao:
+          type: ["string", "null"]
+        lider_id:
+          type: ["integer", "null"]
+        coordenador_id:
+          type: ["integer", "null"]
+      required:
+        - nome
+        - telefone
+        - nivel
+
+    UpdateContatoBody:
+      type: object
+      properties:
+        nome:
+          type: ["string", "null"]
+        telefone:
+          type: ["string", "null"]
+        bairro:
+          type: ["string", "null"]
+        rua_referencia:
+          type: ["string", "null"]
+        nivel:
+          type: ["string", "null"]
+        observacao:
+          type: ["string", "null"]
+        lider_id:
+          type: ["integer", "null"]
+        coordenador_id:
+          type: ["integer", "null"]
+
+    DashboardVereador:
+      type: object
+      properties:
+        total_contatos:
+          type: integer
+        total_simpatizantes:
+          type: integer
+        total_fechados:
+          type: integer
+        total_coordenadores:
+          type: integer
+        total_lideres:
+          type: integer
+        por_coordenador:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatsCoordenador"
+        por_bairro:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatsBairro"
+      required:
+        - total_contatos
+        - total_simpatizantes
+        - total_fechados
+        - total_coordenadores
+        - total_lideres
+        - por_coordenador
+        - por_bairro
+
+    StatsCoordenador:
+      type: object
+      properties:
+        coordenador_id:
+          type: ["integer", "null"]
+        coordenador_nome:
+          type: ["string", "null"]
+        total:
+          type: integer
+        simpatizantes:
+          type: integer
+        fechados:
+          type: integer
+        lideres:
+          type: integer
+      required:
+        - total
+        - simpatizantes
+        - fechados
+        - lideres
+
+    StatsBairro:
+      type: object
+      properties:
+        bairro:
+          type: ["string", "null"]
+        total:
+          type: integer
+      required:
+        - total
+
+    DashboardCoordenador:
+      type: object
+      properties:
+        total_base:
+          type: integer
+        total_simpatizantes:
+          type: integer
+        total_fechados:
+          type: integer
+        total_lideres:
+          type: integer
+        ranking_lideres:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatsLider"
+      required:
+        - total_base
+        - total_simpatizantes
+        - total_fechados
+        - total_lideres
+        - ranking_lideres
+
+    StatsLider:
+      type: object
+      properties:
+        lider_id:
+          type: ["integer", "null"]
+        lider_nome:
+          type: ["string", "null"]
+        total:
+          type: integer
+        simpatizantes:
+          type: integer
+        fechados:
+          type: integer
+      required:
+        - total
+        - simpatizantes
+        - fechados
+
+    DashboardLider:
+      type: object
+      properties:
+        total_contatos:
+          type: integer
+        total_simpatizantes:
+          type: integer
+        total_fechados:
+          type: integer
+        ultimos_cadastrados:
+          type: array
+          items:
+            $ref: "#/components/schemas/Contato"
+      required:
+        - total_contatos
+        - total_simpatizantes
+        - total_fechados
+        - ultimos_cadastrados

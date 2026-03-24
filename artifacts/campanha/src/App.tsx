@@ -1,6 +1,7 @@
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { getDashboardPath } from "@/lib/dashboard-path";
 import LoginPage from "@/pages/login";
 import DashboardLiderPage from "@/pages/dashboard-lider";
 import DashboardCoordenadorRegionalPage from "@/pages/dashboard-coordenador-regional";
@@ -18,12 +19,6 @@ import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
 
-export function getDashboardPath(tipo: string) {
-  if (tipo === "vereador" || tipo === "super_admin") return "/dashboard/vereador";
-  if (tipo === "coordenador_geral") return "/dashboard/coordenador-geral";
-  if (tipo === "coordenador_regional") return "/dashboard/coordenador-regional";
-  return "/dashboard/lider";
-}
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth();

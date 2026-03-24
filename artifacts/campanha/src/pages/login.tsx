@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { getDashboardPath } from "@/App";
+import { getDashboardPath } from "@/lib/dashboard-path";
 
 export default function LoginPage() {
   const { login } = useAuth();

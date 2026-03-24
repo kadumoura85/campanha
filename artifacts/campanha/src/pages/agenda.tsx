@@ -16,6 +16,8 @@ interface Evento {
   criado_por_nome: string | null;
 }
 
+interface Regiao { id: number; nome: string; }
+
 const tipoEventoConfig: Record<string, { label: string; emoji: string; color: string }> = {
   reuniao: { label: "Reunião", emoji: "🤝", color: "bg-blue-100 text-blue-700" },
   caminhada: { label: "Caminhada", emoji: "🚶", color: "bg-green-100 text-green-700" },
@@ -35,6 +37,7 @@ const TIPOS_EVENTO = Object.entries(tipoEventoConfig).map(([k, v]) => ({ value: 
 
 export default function AgendaPage() {
   const [eventos, setEventos] = useState<Evento[]>([]);
+  const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const { usuario } = useAuth();
@@ -43,7 +46,7 @@ export default function AgendaPage() {
 
   const [form, setForm] = useState({
     titulo: "", descricao: "", data: "", hora: "", local: "",
-    tipo_evento: "reuniao", visibilidade: "geral",
+    tipo_evento: "reuniao", visibilidade: "geral", regiao_id: "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -55,7 +58,10 @@ export default function AgendaPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    apiGet<Regiao[]>("/api/regioes").then(setRegioes).catch(() => {});
+  }, []);
 
   const today = new Date().toISOString().split("T")[0]!;
   const proximos = eventos.filter(e => e.data >= today).sort((a, b) => a.data.localeCompare(b.data));
@@ -65,9 +71,12 @@ export default function AgendaPage() {
     if (!form.titulo || !form.data) { setError("Título e data são obrigatórios"); return; }
     setSaving(true); setError("");
     try {
-      await apiPost("/api/eventos", form);
+      const payload: Record<string, unknown> = { ...form };
+      if (form.regiao_id) payload.regiao_id = Number(form.regiao_id);
+      else delete payload.regiao_id;
+      await apiPost("/api/eventos", payload);
       setShowForm(false);
-      setForm({ titulo: "", descricao: "", data: "", hora: "", local: "", tipo_evento: "reuniao", visibilidade: "geral" });
+      setForm({ titulo: "", descricao: "", data: "", hora: "", local: "", tipo_evento: "reuniao", visibilidade: "geral", regiao_id: "" });
       load();
     } catch (e: any) {
       setError(e.message);
@@ -141,6 +150,16 @@ export default function AgendaPage() {
                   </select>
                 </div>
               </div>
+              {regioes.length > 0 && (
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Região</label>
+                  <select value={form.regiao_id} onChange={e => setForm(f => ({ ...f, regiao_id: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Sem região específica</option>
+                    {regioes.map(r => <option key={r.id} value={String(r.id)}>{r.nome}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Descrição</label>
                 <textarea value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))}
@@ -192,7 +211,7 @@ export default function AgendaPage() {
 }
 
 function EventoCard({ evento }: { evento: Evento }) {
-  const cfg = tipoEventoConfig[evento.tipo_evento] || tipoEventoConfig.reuniao;
+  const cfg = tipoEventoConfig[evento.tipo_evento] || tipoEventoConfig.reuniao!;
   const dateObj = new Date(evento.data + "T12:00:00");
 
   return (

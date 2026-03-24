@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useCampanha } from "@/contexts/CampanhaContext";
 
 interface LayoutProps {
   children: ReactNode;
@@ -54,11 +55,14 @@ const tipoLabel: Record<TipoUsuario, string> = {
 export default function Layout({ children }: LayoutProps) {
   const { usuario, logout } = useAuth();
   const [location, navigate] = useLocation();
+  const { config } = useCampanha();
 
   if (!usuario) return null;
 
   const tipo = usuario.tipo as TipoUsuario;
   const items = navItems[tipo] || navItems["lider"];
+  const primary = config.cor_primaria || "#1d4ed8";
+  const secondary = config.cor_secundaria || "#1e40af";
 
   const handleLogout = async () => {
     await logout();
@@ -68,20 +72,29 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="bg-blue-700 text-white sticky top-0 z-50 shadow-lg">
+      <header className="text-white sticky top-0 z-50 shadow-lg" style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
         <div className="flex items-center justify-between px-4 py-3 max-w-screen-xl mx-auto">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-              <span className="text-base">🏛️</span>
-            </div>
+            {config.logo ? (
+              <img src={config.logo} alt="Logo" className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                <span className="text-base">🏛️</span>
+              </div>
+            )}
             <div>
-              <span className="font-bold text-sm">Campanha</span>
+              <span className="font-bold text-sm leading-none block">
+                {config.numero ? `${config.nome_candidato} • ${config.numero}` : config.nome_candidato}
+              </span>
+              {config.slogan && (
+                <span className="text-xs text-white/75 leading-none block truncate max-w-[160px]">{config.slogan}</span>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
               <p className="text-xs font-semibold text-white">{usuario.nome.split(" ")[0]}</p>
-              <p className="text-xs text-blue-200">{tipoLabel[tipo]}</p>
+              <p className="text-xs text-white/70">{tipoLabel[tipo]}</p>
             </div>
             <button
               onClick={handleLogout}
@@ -99,11 +112,17 @@ export default function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="bg-blue-700 text-white border-t border-blue-600 fixed bottom-0 left-0 right-0 z-50 shadow-2xl">
+      <nav className="text-white border-t border-white/20 fixed bottom-0 left-0 right-0 z-50 shadow-2xl"
+        style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
         <div className="flex items-center justify-around max-w-screen-xl mx-auto">
           {items.map((item) => {
-            const isActive = location.startsWith(item.href) && item.href !== "/" || location === item.href;
-            const active = location === item.href || (item.href !== "/dashboard/vereador" && item.href !== "/dashboard/coordenador-geral" && item.href !== "/dashboard/coordenador-regional" && item.href !== "/dashboard/lider" && location.startsWith(item.href));
+            const isActive = location === item.href || (
+              item.href !== "/dashboard/vereador" &&
+              item.href !== "/dashboard/coordenador-geral" &&
+              item.href !== "/dashboard/coordenador-regional" &&
+              item.href !== "/dashboard/lider" &&
+              location.startsWith(item.href)
+            );
             return (
               <button
                 key={item.href}
@@ -111,7 +130,7 @@ export default function Layout({ children }: LayoutProps) {
                 className={`flex flex-col items-center gap-0.5 py-2 px-3 flex-1 transition-all ${
                   isActive
                     ? "text-white bg-white/20"
-                    : "text-blue-200 hover:text-white hover:bg-white/10"
+                    : "text-white/70 hover:text-white hover:bg-white/10"
                 }`}
               >
                 <span className="text-lg leading-none">{item.icon}</span>

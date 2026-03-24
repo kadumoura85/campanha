@@ -1,6 +1,7 @@
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { CampanhaProvider } from "@/contexts/CampanhaContext";
 import { getDashboardPath } from "@/lib/dashboard-path";
 import LoginPage from "@/pages/login";
 import DashboardLiderPage from "@/pages/dashboard-lider";
@@ -74,13 +75,15 @@ function RootRedirect() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-        <AuthProvider>
-          <AuthGuard>
-            <AppRoutes />
-          </AuthGuard>
-        </AuthProvider>
-      </WouterRouter>
+      <CampanhaProvider>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <AuthProvider>
+            <AuthGuard>
+              <AppRoutes />
+            </AuthGuard>
+          </AuthProvider>
+        </WouterRouter>
+      </CampanhaProvider>
     </QueryClientProvider>
   );
 }

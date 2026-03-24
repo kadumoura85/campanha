@@ -1,0 +1,309 @@
+Crie uma aplicação web responsiva, moderna e profissional para gestão de campanha política municipal.
+
+OBJETIVO
+O sistema deve ser um CRM eleitoral hierárquico com:
+- dashboards por perfil
+- foco territorial (regiões)
+- mapa estratégico
+- agenda compartilhada
+- lembretes internos
+- identidade visual personalizada da campanha
+
+O sistema deve ser:
+- extremamente simples para uso no celular
+- rápido para cadastrar pessoas
+- claro para tomada de decisão
+
+STACK
+- Next.js
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- Supabase (auth + banco)
+- Recharts (gráficos)
+
+----------------------------------------
+PERFIS DO SISTEMA
+
+1. super_admin
+2. vereador
+3. coordenador_geral
+4. coordenador_regional
+5. lider
+
+----------------------------------------
+HIERARQUIA
+
+vereador / coordenador_geral
+→ coordenador_regional
+→ lider
+→ contatos
+
+----------------------------------------
+REGRAS DE ACESSO
+
+- líder vê apenas seus contatos
+- coordenador_regional vê apenas sua região e líderes
+- coordenador_geral vê toda a campanha
+- vereador vê tudo
+- apenas líderes e coordenadores_regionais cadastram contatos
+- login direciona automaticamente para o dashboard do perfil
+
+----------------------------------------
+LOGIN
+
+- login por telefone ou email
+- senha simples
+- redirecionamento automático para dashboard
+
+----------------------------------------
+NÍVEIS DOS CONTATOS
+
+Apenas 3 níveis:
+- contato
+- simpatizante
+- fechado
+
+Interface simples (botões grandes)
+
+----------------------------------------
+REGIÕES
+
+Tabela de regiões com:
+- nome
+- cor
+- coordenador_responsavel
+- prioridade (normal, atenção, prioritária)
+- observacao_estrategica
+
+Funções:
+- marcar região como prioritária
+- destacar no dashboard
+- destacar no mapa
+
+----------------------------------------
+MAPA
+
+Mapa simples por região:
+
+Cores:
+- verde = forte
+- amarelo = médio
+- vermelho = fraco
+- azul = prioritário
+
+Ao clicar:
+- total de contatos
+- simpatizantes
+- fechados
+- líderes
+- coordenador
+- observações
+- próximos eventos
+
+----------------------------------------
+DASHBOARD DO VEREADOR (PRINCIPAL)
+
+Topo:
+- foto do vereador
+- nome
+- número
+- slogan
+- identidade visual
+
+Cards:
+- base total
+- simpatizantes
+- fechados
+- crescimento semanal
+- regiões prioritárias
+- reuniões da semana
+- alertas
+
+Gráficos:
+- evolução semanal
+- por região
+- por coordenador
+
+Mapa central
+
+Ranking:
+- coordenadores
+- líderes
+- regiões
+
+Alertas:
+- regiões sem atualização
+- líderes inativos
+- regiões fracas
+
+----------------------------------------
+DASHBOARD DO COORDENADOR GERAL
+
+- visão geral da campanha
+- ranking de coordenadores
+- ranking de líderes
+- mapa
+- regiões prioritárias
+- alertas operacionais
+
+----------------------------------------
+DASHBOARD DO COORDENADOR REGIONAL
+
+- sua região
+- líderes abaixo
+- total de base
+- simpatizantes
+- fechados
+- ranking de líderes
+- botão cadastrar contato
+- marcar região como prioritária
+- observações estratégicas
+
+----------------------------------------
+DASHBOARD DO LÍDER
+
+- nome
+- região
+- total da base
+- simpatizantes
+- fechados
+- últimos contatos
+- botão grande "Cadastrar pessoa"
+
+----------------------------------------
+CADASTRO DE CONTATOS
+
+Campos:
+- nome
+- telefone (único)
+- bairro
+- rua_referencia
+- nivel
+- observacao
+- lider_id
+- coordenador_regional_id automático
+- regiao_id automático
+
+----------------------------------------
+AGENDA
+
+Eventos:
+- reunião
+- caminhada
+- visita
+- comício
+- ação de rua
+
+Campos:
+- título
+- data
+- hora
+- local
+- região
+- responsável
+
+Funções:
+- aparece no dashboard
+- visível por perfil
+- lembretes internos
+
+----------------------------------------
+PERSONALIZAÇÃO DA CAMPANHA (MUITO IMPORTANTE)
+
+Criar módulo de configuração com:
+
+Campos:
+- nome do vereador
+- número da campanha
+- slogan
+- foto principal
+- logo da campanha
+- imagem do santinho
+- imagem de capa
+- cores principais (primária e secundária)
+- música da campanha (upload de áudio ou link)
+- frase institucional
+- descrição curta
+
+Funcionalidades:
+- mudar cores do sistema automaticamente
+- personalizar login
+- personalizar dashboard
+- personalizar sidebar
+- personalizar cabeçalhos
+
+Extras importantes:
+- botão para tocar música da campanha no dashboard
+- exibir slogan no topo
+- exibir número do vereador em destaque
+- permitir atualizar facilmente durante a campanha
+
+----------------------------------------
+OBSERVAÇÕES ESTRATÉGICAS
+
+Cada região deve ter:
+- campo de observação política
+- histórico de observações
+
+----------------------------------------
+MÉTRICAS
+
+Mostrar:
+- total contatos
+- simpatizantes
+- fechados
+- por região
+- por líder
+- por coordenador
+- crescimento semanal
+
+----------------------------------------
+LISTA DE CONTATOS
+
+Filtros:
+- bairro
+- nível
+- região
+- líder
+
+----------------------------------------
+BANCO DE DADOS (SUPABASE)
+
+Criar tabelas:
+
+usuarios
+regioes
+contatos
+eventos
+configuracao_campanha
+observacoes_regiao
+
+----------------------------------------
+SEGURANÇA
+
+- usar RLS
+- limitar acesso por perfil
+- evitar acesso fora da hierarquia
+
+----------------------------------------
+INTERFACE
+
+- moderna
+- limpa
+- rápida
+- mobile first
+- profissional
+
+----------------------------------------
+ENTREGA
+
+- estrutura completa
+- SQL
+- autenticação
+- dashboards
+- CRUD completo
+- mapa simples
+- agenda
+- personalização visual
+- README

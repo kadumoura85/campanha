@@ -157,6 +157,16 @@ router.get("/dashboard/vereador", async (req, res): Promise<void> => {
 
   const proximos_eventos = await getProximosEventos(usuario.id, usuario.tipo, null);
 
+  const evolucao_semanal = await db.select({
+    semana: sql<string>`date_trunc('week', ${contatosTable.created_at})::date::text`,
+    total: sql<number>`count(*)::int`,
+    simpatizantes: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'simpatizante')::int`,
+    fechados: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'fechado')::int`,
+  }).from(contatosTable)
+    .where(gte(contatosTable.created_at, new Date(Date.now() - 8 * 7 * 24 * 60 * 60 * 1000)))
+    .groupBy(sql`date_trunc('week', ${contatosTable.created_at})`)
+    .orderBy(sql`date_trunc('week', ${contatosTable.created_at})`);
+
   const alertas: string[] = [];
   const regioesFracas = porRegiao.filter(r => r.total > 0 && r.fechados / r.total < 0.1);
   if (regioesFracas.length > 0) alertas.push(`${regioesFracas.length} região(ões) com poucos fechados`);
@@ -172,6 +182,7 @@ router.get("/dashboard/vereador", async (req, res): Promise<void> => {
     total_lideres: liderCount?.total || 0,
     total_regioes: regiaoCount?.total || 0,
     crescimento_semana: semanaAntPass?.total || 0,
+    evolucao_semanal,
     por_coordenador: porCoordenador,
     por_regiao: porRegiao,
     ranking_lideres: rankingLideres,

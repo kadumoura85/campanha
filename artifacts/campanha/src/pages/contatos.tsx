@@ -19,6 +19,9 @@ interface Contato {
   regiao_nome: string | null;
 }
 
+interface Regiao { id: number; nome: string; }
+interface Lider { id: number; nome: string; }
+
 const NIVEIS = [
   { value: "", label: "Todos" },
   { value: "contato", label: "Contato" },
@@ -32,22 +35,41 @@ export default function ContatosPage() {
   const [contatos, setContatos] = useState<Contato[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroNivel, setFiltroNivel] = useState("");
+  const [filtroRegiao, setFiltroRegiao] = useState("");
+  const [filtroLider, setFiltroLider] = useState("");
   const [busca, setBusca] = useState("");
+  const [regioes, setRegioes] = useState<Regiao[]>([]);
+  const [lideres, setLideres] = useState<Lider[]>([]);
 
   const podeCadastrar = ["lider", "coordenador_regional", "super_admin"].includes(usuario?.tipo || "");
   const podeEditar = ["lider", "coordenador_regional", "super_admin", "coordenador_geral", "vereador"].includes(usuario?.tipo || "");
+  const showLiderFilter = ["vereador", "super_admin", "coordenador_geral", "coordenador_regional"].includes(usuario?.tipo || "");
+  const showRegiaoFilter = ["vereador", "super_admin", "coordenador_geral"].includes(usuario?.tipo || "");
+
+  useEffect(() => {
+    if (showRegiaoFilter) {
+      apiGet<Regiao[]>("/api/regioes").then(setRegioes).catch(() => {});
+    }
+    if (showLiderFilter) {
+      apiGet<{ id: number; nome: string; tipo: string }[]>("/api/usuarios")
+        .then(users => setLideres(users.filter(u => u.tipo === "lider")))
+        .catch(() => {});
+    }
+  }, []);
 
   const load = () => {
     setLoading(true);
     const params = new URLSearchParams();
     if (filtroNivel) params.set("nivel", filtroNivel);
+    if (filtroRegiao) params.set("regiao_id", filtroRegiao);
+    if (filtroLider) params.set("lider_id", filtroLider);
     if (busca) params.set("busca", busca);
     apiGet<Contato[]>(`/api/contatos${params.toString() ? "?" + params.toString() : ""}`)
       .then(setContatos)
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [filtroNivel]);
+  useEffect(() => { load(); }, [filtroNivel, filtroRegiao, filtroLider]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,7 +109,7 @@ export default function ContatosPage() {
         </form>
 
         {/* Filtro Nível */}
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+        <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
           {NIVEIS.map(n => (
             <button key={n.value} onClick={() => setFiltroNivel(n.value)}
               className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${filtroNivel === n.value ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
@@ -95,6 +117,34 @@ export default function ContatosPage() {
             </button>
           ))}
         </div>
+
+        {/* Filtros adicionais */}
+        {(showRegiaoFilter || showLiderFilter) && (
+          <div className="flex gap-2 mb-4">
+            {showRegiaoFilter && regioes.length > 0 && (
+              <select
+                value={filtroRegiao}
+                onChange={e => setFiltroRegiao(e.target.value)}
+                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">Todas as regiões</option>
+                {regioes.map(r => (
+                  <option key={r.id} value={String(r.id)}>{r.nome}</option>
+                ))}
+              </select>
+            )}
+            {showLiderFilter && lideres.length > 0 && (
+              <select
+                value={filtroLider}
+                onChange={e => setFiltroLider(e.target.value)}
+                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">Todos os líderes</option>
+                {lideres.map(l => (
+                  <option key={l.id} value={String(l.id)}>{l.nome}</option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
 
         {loading && (
           <div className="text-center py-12">
@@ -121,7 +171,7 @@ export default function ContatosPage() {
                   <NivelBadge nivel={c.nivel} />
                 </div>
                 <p className="text-xs text-gray-500">{c.telefone}</p>
-                <div className="flex gap-2 mt-0.5">
+                <div className="flex gap-2 mt-0.5 flex-wrap">
                   {c.bairro && <p className="text-xs text-gray-400">📍 {c.bairro}</p>}
                   {c.regiao_nome && <p className="text-xs text-gray-400">🗺️ {c.regiao_nome}</p>}
                 </div>

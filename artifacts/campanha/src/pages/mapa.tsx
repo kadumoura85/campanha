@@ -14,6 +14,28 @@ interface RegiaoComStats {
   total_simpatizantes: number;
   total_fechados: number;
   total_lideres: number;
+  observacao_estrategica: string | null;
+}
+
+interface Observacao {
+  id: number;
+  observacao: string;
+  autor_nome: string | null;
+  created_at: string;
+}
+
+interface Evento {
+  id: number;
+  titulo: string;
+  data: string;
+  hora: string | null;
+  local: string | null;
+  tipo_evento: string;
+}
+
+interface RegiaoDetalhe extends RegiaoComStats {
+  observacoes: Observacao[];
+  proximos_eventos: Evento[];
 }
 
 function getRegStrength(regiao: RegiaoComStats): "forte" | "media" | "fraca" | "prioritaria" {
@@ -32,10 +54,17 @@ const strengthConfig = {
   prioritaria: { color: "#3B82F6", label: "Prioritária", bg: "bg-blue-100 border-blue-300 text-blue-800" },
 };
 
+const tipoEventoEmoji: Record<string, string> = {
+  reuniao: "🤝", caminhada: "🚶", visita: "🏠", comicio: "🎤",
+  acao_de_rua: "📢", evento_interno: "🏛️",
+};
+
 export default function MapaPage() {
   const [regioes, setRegioes] = useState<RegiaoComStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<RegiaoComStats | null>(null);
+  const [detalhe, setDetalhe] = useState<RegiaoDetalhe | null>(null);
+  const [loadingDetalhe, setLoadingDetalhe] = useState(false);
   const [, navigate] = useLocation();
 
   useEffect(() => {
@@ -43,6 +72,22 @@ export default function MapaPage() {
       .then(setRegioes)
       .finally(() => setLoading(false));
   }, []);
+
+  const handleSelect = async (r: RegiaoComStats) => {
+    if (selected?.id === r.id) {
+      setSelected(null);
+      setDetalhe(null);
+      return;
+    }
+    setSelected(r);
+    setDetalhe(null);
+    setLoadingDetalhe(true);
+    try {
+      const det = await apiGet<RegiaoDetalhe>(`/api/regioes/${r.id}`);
+      setDetalhe(det);
+    } catch {}
+    setLoadingDetalhe(false);
+  };
 
   const legenda = [
     { strength: "forte" as const, label: "Forte (≥30% fechados)" },
@@ -78,7 +123,7 @@ export default function MapaPage() {
           </div>
         )}
 
-        {/* Mapa Visual (hexagonal/card layout) */}
+        {/* Mapa Visual */}
         {!loading && (
           <>
             <div className="grid grid-cols-2 gap-3 mb-4">
@@ -89,7 +134,7 @@ export default function MapaPage() {
                 return (
                   <div
                     key={r.id}
-                    onClick={() => setSelected(selected?.id === r.id ? null : r)}
+                    onClick={() => handleSelect(r)}
                     className={`rounded-2xl p-4 border cursor-pointer transition-all active:scale-95 ${selected?.id === r.id ? "ring-2 ring-blue-500 " : ""} ${cfg.bg}`}
                     style={{ borderColor: cfg.color + "66" }}
                   >
@@ -108,12 +153,12 @@ export default function MapaPage() {
               })}
             </div>
 
-            {/* Painel lateral do selecionado */}
+            {/* Painel de detalhes da região selecionada */}
             {selected && (
               <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-200 mb-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-gray-900 text-lg">{selected.nome}</h3>
-                  <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600 text-lg">×</button>
+                  <button onClick={() => { setSelected(null); setDetalhe(null); }} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
                 </div>
 
                 {selected.coordenador_nome && (
@@ -138,6 +183,52 @@ export default function MapaPage() {
                     <p className="text-xs text-gray-500">Líderes</p>
                   </div>
                 </div>
+
+                {loadingDetalhe && (
+                  <div className="text-center py-3">
+                    <div className="inline-block w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+
+                {detalhe && (
+                  <>
+                    {/* Observação estratégica */}
+                    {(detalhe.observacao_estrategica || detalhe.observacoes.length > 0) && (
+                      <div className="mb-3">
+                        <p className="text-xs font-semibold text-gray-500 mb-1.5">📋 Observações Estratégicas</p>
+                        {detalhe.observacao_estrategica && (
+                          <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-xs text-amber-800 mb-1.5">
+                            {detalhe.observacao_estrategica}
+                          </div>
+                        )}
+                        {detalhe.observacoes.slice(0, 2).map(obs => (
+                          <div key={obs.id} className="bg-gray-50 rounded-xl p-2.5 text-xs text-gray-700 mb-1">
+                            <p>{obs.observacao}</p>
+                            <p className="text-gray-400 mt-1">— {obs.autor_nome} • {new Date(obs.created_at).toLocaleDateString("pt-BR")}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Próximos eventos */}
+                    {detalhe.proximos_eventos.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs font-semibold text-gray-500 mb-1.5">📅 Próximos Eventos</p>
+                        <div className="space-y-1">
+                          {detalhe.proximos_eventos.map(ev => (
+                            <div key={ev.id} className="flex items-center gap-2 bg-blue-50 rounded-xl p-2 text-xs">
+                              <span>{tipoEventoEmoji[ev.tipo_evento] || "📅"}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-gray-800 truncate">{ev.titulo}</p>
+                                <p className="text-gray-500">{new Date(ev.data + "T12:00:00").toLocaleDateString("pt-BR")} {ev.hora && `• ${ev.hora.slice(0,5)}`}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
 
                 <button
                   onClick={() => navigate(`/regioes/${selected.id}`)}

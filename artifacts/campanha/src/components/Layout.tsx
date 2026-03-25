@@ -20,16 +20,16 @@ const navItems: Record<TipoUsuario, { href: string; label: string; icon: string 
   vereador: [
     { href: "/dashboard/vereador", label: "Dashboard", icon: "📊" },
     { href: "/mapa", label: "Mapa", icon: "🗺️" },
-    { href: "/regioes", label: "Regiões", icon: "📍" },
+    { href: "/usuarios", label: "Equipe", icon: "👥" },
     { href: "/agenda", label: "Agenda", icon: "📅" },
-    { href: "/contatos", label: "Contatos", icon: "👥" },
+    { href: "/configuracao", label: "Config", icon: "⚙️" },
   ],
   coordenador_geral: [
     { href: "/dashboard/vereador", label: "Dashboard", icon: "📊" },
     { href: "/mapa", label: "Mapa", icon: "🗺️" },
-    { href: "/regioes", label: "Regiões", icon: "📍" },
-    { href: "/agenda", label: "Agenda", icon: "📅" },
     { href: "/contatos", label: "Contatos", icon: "👥" },
+    { href: "/usuarios", label: "Equipe", icon: "👤" },
+    { href: "/agenda", label: "Agenda", icon: "📅" },
   ],
   coordenador_regional: [
     { href: "/dashboard/coordenador-regional", label: "Dashboard", icon: "📊" },

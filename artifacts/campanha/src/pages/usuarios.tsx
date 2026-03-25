@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
-import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/api";
+import { apiGet, apiPost, apiPatch } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 
 interface Usuario {
@@ -10,25 +10,31 @@ interface Usuario {
   email: string | null;
   tipo: string;
   ativo: boolean;
-  regiao_nome?: string | null;
-  coordenador_nome?: string | null;
+  coordenador_id: number | null;
 }
 
 const tipoConfig: Record<string, { label: string; color: string; bg: string }> = {
   super_admin: { label: "Super Admin", color: "text-red-700", bg: "bg-red-100" },
   vereador: { label: "Vereador", color: "text-blue-700", bg: "bg-blue-100" },
   coordenador_geral: { label: "Coord. Geral", color: "text-teal-700", bg: "bg-teal-100" },
-  coordenador_regional: { label: "Coord. Regional", color: "text-indigo-700", bg: "bg-indigo-100" },
+  coordenador_regional: { label: "Coordenador", color: "text-indigo-700", bg: "bg-indigo-100" },
   lider: { label: "Líder", color: "text-green-700", bg: "bg-green-100" },
 };
 
-const TIPOS = [
-  { value: "super_admin", label: "Super Admin" },
+const ALL_TIPOS = [
   { value: "vereador", label: "Vereador" },
   { value: "coordenador_geral", label: "Coordenador Geral" },
   { value: "coordenador_regional", label: "Coordenador Regional" },
   { value: "lider", label: "Líder" },
 ];
+
+function getTiposPermitidos(tipoUsuario: string) {
+  if (tipoUsuario === "super_admin") return ALL_TIPOS;
+  if (tipoUsuario === "vereador") return ALL_TIPOS.filter(t => t.value !== "super_admin");
+  if (tipoUsuario === "coordenador_geral") return ALL_TIPOS.filter(t => ["coordenador_regional", "lider"].includes(t.value));
+  if (tipoUsuario === "coordenador_regional") return ALL_TIPOS.filter(t => t.value === "lider");
+  return [];
+}
 
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -37,11 +43,14 @@ export default function UsuariosPage() {
   const [filterTipo, setFilterTipo] = useState("");
   const { usuario } = useAuth();
 
-  const canEdit = ["super_admin", "vereador"].includes(usuario?.tipo || "");
+  const canEdit = ["super_admin", "vereador", "coordenador_geral", "coordenador_regional"].includes(usuario?.tipo || "");
+  const tiposPermitidos = usuario ? getTiposPermitidos(usuario.tipo) : [];
+  const isCoordRegional = usuario?.tipo === "coordenador_regional";
 
   const [form, setForm] = useState({
-    nome: "", telefone: "", email: "", senha: "", tipo: "lider",
-    coordenador_id: "", regiao_id: "", bairro_regiao: "",
+    nome: "", telefone: "", email: "", senha: "",
+    tipo: tiposPermitidos[0]?.value || "lider",
+    coordenador_id: "", bairro_regiao: "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -51,22 +60,34 @@ export default function UsuariosPage() {
     const qs = filterTipo ? `?tipo=${filterTipo}` : "";
     apiGet<Usuario[]>(`/api/usuarios${qs}`)
       .then(setUsuarios)
+      .catch(() => {})
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, [filterTipo]);
+
+  const openForm = () => {
+    const defaultTipo = tiposPermitidos[0]?.value || "lider";
+    setForm({ nome: "", telefone: "", email: "", senha: "", tipo: defaultTipo, coordenador_id: "", bairro_regiao: "" });
+    setError("");
+    setShowForm(true);
+  };
 
   const save = async () => {
     if (!form.nome || !form.senha) { setError("Nome e senha são obrigatórios"); return; }
     setSaving(true); setError("");
     try {
       await apiPost("/api/usuarios", {
-        ...form,
+        nome: form.nome,
+        telefone: form.telefone || null,
+        email: form.email || null,
+        senha: form.senha,
+        tipo: form.tipo,
         coordenador_id: form.coordenador_id ? Number(form.coordenador_id) : null,
-        regiao_id: form.regiao_id ? Number(form.regiao_id) : null,
+        bairro_regiao: form.bairro_regiao || null,
+        ativo: true,
       });
       setShowForm(false);
-      setForm({ nome: "", telefone: "", email: "", senha: "", tipo: "lider", coordenador_id: "", regiao_id: "", bairro_regiao: "" });
       load();
     } catch (e: any) {
       setError(e.message);
@@ -87,33 +108,36 @@ export default function UsuariosPage() {
   }
 
   const tipoOrder = ["super_admin", "vereador", "coordenador_geral", "coordenador_regional", "lider"];
+  const filterOptions = [{ value: "", label: "Todos" }, ...ALL_TIPOS];
 
   return (
     <Layout>
       <div className="p-4 max-w-lg mx-auto">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Usuários</h1>
-            <p className="text-sm text-gray-500">{usuarios.length} usuários</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {isCoordRegional ? "Meus Líderes" : "Usuários"}
+            </h1>
+            <p className="text-sm text-gray-500">{usuarios.length} {isCoordRegional ? "líderes" : "usuários"}</p>
           </div>
-          {canEdit && (
-            <button onClick={() => setShowForm(!showForm)} className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-xl shadow">
-              {showForm ? "Cancelar" : "+ Novo"}
+          {canEdit && tiposPermitidos.length > 0 && (
+            <button onClick={openForm} className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-xl shadow">
+              + Novo
             </button>
           )}
         </div>
 
-        {/* Filtro */}
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-          {[{ value: "", label: "Todos" }, ...TIPOS].map(t => (
-            <button key={t.value} onClick={() => setFilterTipo(t.value)}
-              className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${filterTipo === t.value ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-              {t.label}
-            </button>
-          ))}
-        </div>
+        {!isCoordRegional && (
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+            {filterOptions.map(t => (
+              <button key={t.value} onClick={() => setFilterTipo(t.value)}
+                className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${filterTipo === t.value ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {/* Form */}
         {showForm && (
           <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-200">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Novo Usuário</h2>
@@ -136,14 +160,22 @@ export default function UsuariosPage() {
                     className="w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Perfil *</label>
-                <select value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
-              </div>
-              {(form.tipo === "lider" || form.tipo === "coordenador_regional") && (
+
+              {tiposPermitidos.length > 1 ? (
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Perfil *</label>
+                  <select value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    {tiposPermitidos.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+              ) : (
+                <div className="text-xs text-gray-500 bg-gray-50 rounded-xl p-2.5">
+                  Perfil: <span className="font-semibold text-gray-700">{tiposPermitidos[0]?.label}</span>
+                </div>
+              )}
+
+              {!isCoordRegional && (form.tipo === "lider" || form.tipo === "coordenador_regional") && (
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">ID Coordenador</label>
@@ -151,16 +183,31 @@ export default function UsuariosPage() {
                       className="w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">ID Região</label>
-                    <input type="number" value={form.regiao_id} onChange={e => setForm(f => ({ ...f, regiao_id: e.target.value }))}
+                    <label className="block text-xs text-gray-500 mb-1">Bairro / Região</label>
+                    <input value={form.bairro_regiao} onChange={e => setForm(f => ({ ...f, bairro_regiao: e.target.value }))}
                       className="w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                 </div>
               )}
-              <button onClick={save} disabled={saving}
-                className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-semibold text-sm disabled:opacity-50">
-                {saving ? "Salvando..." : "Criar Usuário"}
-              </button>
+
+              {isCoordRegional && (
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Bairro / Região</label>
+                  <input value={form.bairro_regiao} onChange={e => setForm(f => ({ ...f, bairro_regiao: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <button onClick={() => setShowForm(false)}
+                  className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl font-semibold text-sm">
+                  Cancelar
+                </button>
+                <button onClick={save} disabled={saving}
+                  className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-semibold text-sm disabled:opacity-50">
+                  {saving ? "Salvando..." : "Criar"}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -205,7 +252,7 @@ export default function UsuariosPage() {
         {usuarios.length === 0 && !loading && (
           <div className="text-center py-12 text-gray-400">
             <p className="text-5xl mb-3">👥</p>
-            <p>Nenhum usuário encontrado</p>
+            <p>{isCoordRegional ? "Nenhum líder cadastrado ainda" : "Nenhum usuário encontrado"}</p>
           </div>
         )}
       </div>

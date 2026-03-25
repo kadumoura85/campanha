@@ -1,0 +1,106 @@
+ATENÇÃO: não quero implementação parcial, resumida ou simplificada.
+
+Quero que você revise o projeto atual e APLIQUE TODAS as funcionalidades e regras abaixo, sem omitir nenhuma. 
+Antes de finalizar, confira item por item e garanta que tudo foi incluído.
+
+REGRAS IMPORTANTES:
+- Não remover funcionalidades já existentes que façam sentido
+- Não simplificar perfis de acesso
+- Não misturar permissões de perfis
+- Não entregar só interface sem regra de negócio
+- Não entregar só backend sem refletir no frontend
+- Tudo precisa funcionar pensando no ambiente Replit
+- Se algo já existir, corrigir e ajustar ao invés de duplicar
+- Ao final, quero uma confirmação por checklist do que foi implementado
+
+CORREÇÃO DE PERFIS E FUNCIONALIDADES:
+
+1. COORDENADOR GERAL
+- Tem o mesmo nível de visualização do vereador
+- Pode cadastrar pessoa/contato/eleitor
+- Pode cadastrar coordenador
+- Pode cadastrar líder
+- Pode adicionar eventos
+- Pode acompanhar dashboard geral
+- Pode visualizar mapa/regiões
+- Pode definir ou acompanhar regiões prioritárias
+- Pode ajudar na organização geral da campanha
+
+2. VEREADOR
+- Tem dashboard completo, claro e visual para tomada de decisão
+- Pode visualizar mapa da região/cidade
+- Pode acompanhar regiões prioritárias sem perder visão do restante da cidade
+- Pode personalizar a campanha no app com:
+  - foto
+  - slogan
+  - número do vereador
+  - cores da campanha
+  - identidade visual
+  - santinho
+  - música da campanha
+- Deve ter visão estratégica e consolidada
+
+3. COORDENADOR
+- NÃO tem o mesmo poder do coordenador geral
+- NÃO cadastra coordenador
+- NÃO cadastra líder
+- Pode ajudar na organização de campo
+- Pode receber destaque de prioridades da região, se isso fizer sentido no fluxo
+- Pode acompanhar sua área/região
+- Pode atuar na execução da campanha regional
+
+4. LÍDER
+- É o perfil responsável por cadastrar pessoas / contatos / eleitores
+- Atua diretamente no campo
+- Organiza base local
+- Deve ter acesso simples e objetivo para registro das pessoas
+
+5. CADASTRO INTERNO
+Deve existir cadastro interno de:
+- pessoa
+- contato
+- eleitor
+
+Isso precisa existir no sistema e estar ligado ao perfil correto, principalmente ao líder e ao coordenador geral.
+
+6. EVENTOS
+- Coordenador geral pode adicionar evento
+- Se fizer sentido, vereador também pode visualizar e acompanhar os eventos
+- Os eventos devem ajudar na organização da campanha
+
+7. DASHBOARD
+Quero um dashboard realmente útil, não só bonito.
+Ele deve ajudar o vereador e quem tiver perfil equivalente a tomar decisão.
+Incluir, se possível:
+- resumo por região
+- prioridades
+- áreas com mais atenção
+- acompanhamento de atuação
+- visão clara para tomada de decisão
+
+8. MAPA
+- Incluir mapa da cidade/regiões
+- Permitir marcar regiões que precisam de mais atenção
+- Sem perder a visão das outras áreas
+
+9. PERSONALIZAÇÃO DA CAMPANHA
+Criar área para configurar:
+- foto do vereador
+- slogan
+- número
+- cores
+- santinho
+- música da campanha
+- identidade visual geral do app
+
+10. ENTREGA
+Quero que você:
+- revise o que já existe
+- corrija o que estiver errado
+- implemente tudo que estiver faltando
+- confirme no final, em checklist, cada item implementado
+- destaque o que foi corrigido em relação aos perfis
+
+IMPORTANTE:
+Hoje o sistema aparentemente não está incluindo todas as funcionalidades. 
+Então revise com atenção e NÃO finalize enquanto todos os itens acima não estiverem contemplados.

@@ -63,9 +63,9 @@ router.post("/contatos", async (req, res): Promise<void> => {
   const usuario = await getUsuarioFromRequest(req);
   if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
 
-  const canCreate = ["lider", "coordenador_regional", "super_admin"].includes(usuario.tipo);
+  const canCreate = ["lider", "super_admin"].includes(usuario.tipo);
   if (!canCreate) {
-    res.status(403).json({ error: "Perfil não autorizado a cadastrar contatos" }); return;
+    res.status(403).json({ error: "Apenas líderes podem cadastrar pessoas" }); return;
   }
 
   const { nome, telefone, bairro, rua_referencia, nivel, observacao, origem, lider_id: bodyLiderId, coordenador_id: bodyCoordId, regiao_id: bodyRegiaoId } = req.body;

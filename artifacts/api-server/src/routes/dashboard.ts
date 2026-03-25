@@ -88,7 +88,7 @@ const getProximosEventos = async (usuarioId: number, tipo: string, coordenadorId
 router.get("/dashboard/vereador", async (req, res): Promise<void> => {
   const usuario = await getUsuarioFromRequest(req);
   if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
-  if (!["vereador", "super_admin"].includes(usuario.tipo)) {
+  if (!["vereador", "coordenador_geral", "super_admin"].includes(usuario.tipo)) {
     res.status(403).json({ error: "Acesso negado" }); return;
   }
 

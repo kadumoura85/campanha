@@ -25,15 +25,16 @@ const navItems: Record<TipoUsuario, { href: string; label: string; icon: string 
     { href: "/contatos", label: "Contatos", icon: "👥" },
   ],
   coordenador_geral: [
-    { href: "/dashboard/coordenador-geral", label: "Dashboard", icon: "📊" },
+    { href: "/dashboard/vereador", label: "Dashboard", icon: "📊" },
+    { href: "/mapa", label: "Mapa", icon: "🗺️" },
     { href: "/regioes", label: "Regiões", icon: "📍" },
-    { href: "/contatos", label: "Contatos", icon: "👥" },
     { href: "/agenda", label: "Agenda", icon: "📅" },
+    { href: "/contatos", label: "Contatos", icon: "👥" },
   ],
   coordenador_regional: [
     { href: "/dashboard/coordenador-regional", label: "Dashboard", icon: "📊" },
-    { href: "/contatos", label: "Contatos", icon: "👥" },
-    { href: "/contatos/novo", label: "Cadastrar", icon: "➕" },
+    { href: "/usuarios", label: "Líderes", icon: "👥" },
+    { href: "/contatos", label: "Contatos", icon: "📋" },
     { href: "/agenda", label: "Agenda", icon: "📅" },
   ],
   lider: [
@@ -116,12 +117,9 @@ export default function Layout({ children }: LayoutProps) {
         style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
         <div className="flex items-center justify-around max-w-screen-xl mx-auto">
           {items.map((item) => {
+            const isDashboardLink = item.href.startsWith("/dashboard/");
             const isActive = location === item.href || (
-              item.href !== "/dashboard/vereador" &&
-              item.href !== "/dashboard/coordenador-geral" &&
-              item.href !== "/dashboard/coordenador-regional" &&
-              item.href !== "/dashboard/lider" &&
-              location.startsWith(item.href)
+              !isDashboardLink && location.startsWith(item.href)
             );
             return (
               <button

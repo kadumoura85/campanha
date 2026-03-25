@@ -38,7 +38,7 @@ export default function RegiaoDetalhePage() {
   const [, navigate] = useLocation();
   const { usuario } = useAuth();
 
-  const canEdit = ["super_admin", "vereador", "coordenador_geral", "coordenador_regional"].includes(usuario?.tipo || "");
+  const canEdit = ["super_admin", "vereador", "coordenador_geral"].includes(usuario?.tipo || "");
 
   const load = () => {
     setLoading(true);

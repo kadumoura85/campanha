@@ -7,20 +7,28 @@ import { getUsuarioFromRequest } from "./auth";
 
 const router: IRouter = Router();
 
+const ADMIN_TYPES = ["super_admin", "vereador", "coordenador_geral"];
+
 router.get("/usuarios", async (req, res): Promise<void> => {
   const usuario = await getUsuarioFromRequest(req);
-  if (!usuario) {
-    res.status(401).json({ error: "Não autenticado" });
-    return;
-  }
-  if (usuario.tipo !== "vereador") {
-    res.status(403).json({ error: "Acesso negado" });
-    return;
+  if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
+
+  const allowed = [...ADMIN_TYPES, "coordenador_regional"];
+  if (!allowed.includes(usuario.tipo)) {
+    res.status(403).json({ error: "Acesso negado" }); return;
   }
 
   const { tipo, coordenador_id } = req.query;
+  const conditions: any[] = [];
 
-  let query = db.select({
+  if (usuario.tipo === "coordenador_regional") {
+    conditions.push(eq(usuariosTable.coordenador_id, usuario.id));
+  }
+
+  if (tipo) conditions.push(eq(usuariosTable.tipo, tipo as string));
+  if (coordenador_id) conditions.push(eq(usuariosTable.coordenador_id, parseInt(coordenador_id as string, 10)));
+
+  const query = db.select({
     id: usuariosTable.id,
     nome: usuariosTable.nome,
     telefone: usuariosTable.telefone,
@@ -32,14 +40,6 @@ router.get("/usuarios", async (req, res): Promise<void> => {
     created_at: usuariosTable.created_at,
   }).from(usuariosTable);
 
-  const conditions = [];
-  if (tipo) {
-    conditions.push(eq(usuariosTable.tipo, tipo as string));
-  }
-  if (coordenador_id) {
-    conditions.push(eq(usuariosTable.coordenador_id, parseInt(coordenador_id as string, 10)));
-  }
-
   const usuarios = conditions.length > 0
     ? await query.where(and(...conditions))
     : await query;
@@ -49,27 +49,41 @@ router.get("/usuarios", async (req, res): Promise<void> => {
 
 router.post("/usuarios", async (req, res): Promise<void> => {
   const usuario = await getUsuarioFromRequest(req);
-  if (!usuario) {
-    res.status(401).json({ error: "Não autenticado" });
-    return;
-  }
-  if (usuario.tipo !== "vereador") {
-    res.status(403).json({ error: "Acesso negado" });
-    return;
-  }
+  if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
+
+  const canCreate = [...ADMIN_TYPES, "coordenador_regional"].includes(usuario.tipo);
+  if (!canCreate) { res.status(403).json({ error: "Acesso negado" }); return; }
 
   const parsed = CreateUsuarioBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const targetTipo = parsed.data.tipo;
+
+  if (usuario.tipo === "coordenador_regional") {
+    if (targetTipo !== "lider") {
+      res.status(403).json({ error: "Coordenador só pode cadastrar líderes" }); return;
+    }
+  } else if (usuario.tipo === "coordenador_geral") {
+    if (!["coordenador_regional", "lider"].includes(targetTipo)) {
+      res.status(403).json({ error: "Coordenador Geral pode cadastrar coordenadores e líderes" }); return;
+    }
+  } else if (usuario.tipo === "vereador") {
+    if (targetTipo === "super_admin") {
+      res.status(403).json({ error: "Não autorizado a criar super_admin" }); return;
+    }
   }
 
   const { senha, ...rest } = parsed.data;
   const senha_hash = await bcrypt.hash(senha, 10);
 
+  let values: any = { ...rest, senha_hash };
+  if (usuario.tipo === "coordenador_regional" && targetTipo === "lider") {
+    values.coordenador_id = usuario.id;
+  }
+
   const [novoUsuario] = await db
     .insert(usuariosTable)
-    .values({ ...rest, senha_hash })
+    .values(values)
     .returning({
       id: usuariosTable.id,
       nome: usuariosTable.nome,
@@ -87,10 +101,7 @@ router.post("/usuarios", async (req, res): Promise<void> => {
 
 router.get("/usuarios/:id", async (req, res): Promise<void> => {
   const usuario = await getUsuarioFromRequest(req);
-  if (!usuario) {
-    res.status(401).json({ error: "Não autenticado" });
-    return;
-  }
+  if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
 
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(rawId, 10);
@@ -110,33 +121,36 @@ router.get("/usuarios/:id", async (req, res): Promise<void> => {
     .from(usuariosTable)
     .where(eq(usuariosTable.id, id));
 
-  if (!found) {
-    res.status(404).json({ error: "Usuário não encontrado" });
-    return;
-  }
+  if (!found) { res.status(404).json({ error: "Usuário não encontrado" }); return; }
 
   res.json(found);
 });
 
 router.patch("/usuarios/:id", async (req, res): Promise<void> => {
   const usuario = await getUsuarioFromRequest(req);
-  if (!usuario) {
-    res.status(401).json({ error: "Não autenticado" });
-    return;
-  }
-  if (usuario.tipo !== "vereador") {
-    res.status(403).json({ error: "Acesso negado" });
-    return;
-  }
+  if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
+
+  const canEdit = [...ADMIN_TYPES, "coordenador_regional"].includes(usuario.tipo);
+  if (!canEdit) { res.status(403).json({ error: "Acesso negado" }); return; }
 
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(rawId, 10);
 
-  const parsed = UpdateUsuarioBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
+  const [target] = await db.select().from(usuariosTable).where(eq(usuariosTable.id, id));
+  if (!target) { res.status(404).json({ error: "Usuário não encontrado" }); return; }
+
+  if (usuario.tipo === "coordenador_regional") {
+    if (target.tipo !== "lider" || target.coordenador_id !== usuario.id) {
+      res.status(403).json({ error: "Acesso negado" }); return;
+    }
+  } else if (usuario.tipo === "coordenador_geral") {
+    if (!["coordenador_regional", "lider"].includes(target.tipo)) {
+      res.status(403).json({ error: "Coordenador Geral só pode editar coordenadores e líderes" }); return;
+    }
   }
+
+  const parsed = UpdateUsuarioBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const updateData: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(parsed.data)) {
@@ -161,10 +175,7 @@ router.patch("/usuarios/:id", async (req, res): Promise<void> => {
       created_at: usuariosTable.created_at,
     });
 
-  if (!updated) {
-    res.status(404).json({ error: "Usuário não encontrado" });
-    return;
-  }
+  if (!updated) { res.status(404).json({ error: "Usuário não encontrado" }); return; }
 
   res.json(updated);
 });

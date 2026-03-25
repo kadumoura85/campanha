@@ -1,0 +1,408 @@
+Baseado em tudo o que você já implementou neste projeto, quero que você analise este prompt por completo, compare com a aplicação atual e evolua o sistema de forma inteligente.
+
+Objetivo principal:
+criar uma aplicação de campanha política para vereador, com foco em gestão da equipe, acompanhamento territorial, tomada de decisão, organização operacional e personalização completa da identidade da campanha.
+
+Regras importantes:
+- preserve tudo o que já estiver funcionando bem
+- não remova funcionalidades úteis já existentes
+- implemente o que ainda falta
+- melhore o que estiver fraco, confuso ou mal organizado
+- una as funcionalidades antigas com as novas de forma coerente
+- pense como produto real, não apenas como código
+- mantenha a estrutura simples, organizada e fácil de evoluir dentro do Replit
+- tome decisões inteligentes de arquitetura, UX e design quando perceber oportunidades claras de melhoria
+- priorize clareza, usabilidade, velocidade e visual profissional
+- a aplicação precisa funcionar bem tanto no celular quanto no desktop
+
+==================================================
+1. OBJETIVO DO PRODUTO
+==================================================
+
+A aplicação deve ajudar o vereador e sua equipe a:
+- organizar a campanha
+- acompanhar regiões e territórios
+- cadastrar e gerenciar pessoas
+- acompanhar coordenadores, líderes e contatos
+- visualizar informações importantes em dashboard
+- identificar regiões que precisam de mais atenção
+- planejar e visualizar eventos
+- personalizar o sistema com a identidade visual da campanha
+
+A sensação do produto deve ser:
+- clara
+- moderna
+- bonita
+- profissional
+- intuitiva
+- prática
+- útil de verdade no dia a dia de uma campanha
+
+==================================================
+2. PERFIS DE ACESSO
+==================================================
+
+Implemente controle de acesso por perfil, com permissões diferentes.
+
+Perfis principais:
+- vereador
+- coordenador geral
+- coordenador
+- líder
+
+Também deve existir o cadastro interno de:
+- pessoa / contato / eleitor
+
+--------------------------------------------------
+2.1 Vereador
+--------------------------------------------------
+
+Perfil mais estratégico do sistema.
+
+Permissões:
+- visualizar dashboard geral da campanha
+- visualizar mapa completo da cidade ou regiões
+- acompanhar indicadores gerais e estratégicos
+- acompanhar desempenho por região
+- visualizar regiões com mais força e regiões com menos acompanhamento
+- marcar regiões prioritárias para maior atenção
+- continuar acompanhando as demais regiões sem perder a visão geral
+- visualizar coordenadores, líderes e pessoas cadastradas
+- acompanhar eventos da campanha
+- visualizar resumos consolidados da operação
+- acessar a área de personalização da campanha
+- editar foto do vereador
+- editar slogan
+- editar número da campanha
+- editar cores da aplicação com base na identidade da campanha
+- adicionar jingle ou música da campanha
+- adicionar santinho ou material visual
+- editar informações gerais da campanha
+
+--------------------------------------------------
+2.2 Coordenador Geral
+--------------------------------------------------
+
+Perfil com visão ampla, muito próximo ao vereador na operação e gestão.
+
+Permissões:
+- visualizar dashboard geral
+- visualizar mapa geral da campanha
+- acompanhar indicadores gerais
+- acompanhar regiões prioritárias
+- cadastrar pessoas
+- cadastrar coordenadores
+- cadastrar líderes
+- editar cadastros
+- gerenciar estrutura da campanha
+- criar e editar eventos
+- visualizar a operação quase completa
+- ter acesso gerencial semelhante ao do vereador, exceto pontos sensíveis que você julgar melhor deixar exclusivos do vereador
+- se a estrutura atual já permitir, também pode editar parte das informações institucionais da campanha
+
+--------------------------------------------------
+2.3 Coordenador
+--------------------------------------------------
+
+Perfil tático e regional.
+
+Permissões:
+- visualizar sua região ou conjunto de regiões
+- acompanhar equipe da sua área
+- visualizar líderes sob sua responsabilidade
+- acompanhar pessoas cadastradas da sua região
+- visualizar indicadores regionais
+- visualizar eventos ligados à sua área
+- registrar ou atualizar informações relevantes da região, se essa função fizer sentido
+- receber destaque de prioridades definidas acima
+- ajudar na organização de campo
+
+--------------------------------------------------
+2.4 Líder
+--------------------------------------------------
+
+Perfil operacional de ponta.
+
+Permissões:
+- visualizar apenas sua área ou microárea
+- acompanhar pessoas vinculadas à sua região
+- visualizar orientações da campanha
+- visualizar eventos e mobilizações
+- organizar atuação local
+- atualizar informações simples de campo, se isso existir ou fizer sentido manter
+- ter uma experiência mais direta, simples e rápida
+
+--------------------------------------------------
+2.5 Pessoa / Contato / Eleitor
+--------------------------------------------------
+
+Não precisa necessariamente ser usuário logado neste momento, mas deve existir como cadastro interno importante do sistema.
+
+Campos sugeridos:
+- nome
+- telefone
+- endereço ou região
+- bairro
+- vínculo com líder
+- vínculo com coordenador
+- observações
+- status de acompanhamento
+- tags ou classificações
+- histórico simples
+- origem do contato, se achar útil
+
+==================================================
+3. MATRIZ DE PERMISSÕES
+==================================================
+
+Estruture o sistema para suportar permissões por perfil de forma clara.
+
+O sistema deve controlar:
+- quem pode ver dashboard geral
+- quem pode ver dashboard regional
+- quem pode ver mapa completo
+- quem pode ver apenas sua área
+- quem pode cadastrar pessoa
+- quem pode cadastrar líder
+- quem pode cadastrar coordenador
+- quem pode editar campanha
+- quem pode criar evento
+- quem pode editar evento
+- quem pode marcar região prioritária
+- quem pode acessar configurações institucionais
+
+Implemente:
+- login
+- proteção de rotas
+- menus diferentes por perfil
+- páginas diferentes conforme permissão
+- exibição condicional de ações e botões
+- estrutura preparada para crescer depois
+
+==================================================
+4. DASHBOARD
+==================================================
+
+Crie um dashboard realmente útil para tomada de decisão.
+
+O dashboard deve ser:
+- limpo
+- visualmente forte
+- fácil de ler
+- rápido de entender
+- orientado à ação
+
+O dashboard do vereador e do coordenador geral deve ser mais completo.
+O do coordenador deve ser regional.
+O do líder deve ser mais enxuto.
+
+Blocos sugeridos:
+- total de pessoas cadastradas
+- total por região
+- total de coordenadores
+- total de líderes
+- regiões com mais atividade
+- regiões com menos acompanhamento
+- regiões prioritárias
+- eventos próximos
+- alertas importantes
+- resumo da campanha
+- distribuição por território
+- últimos cadastros ou movimentações, se for útil
+
+Melhore o dashboard além disso se identificar formas melhores de visualização.
+
+==================================================
+5. MAPA E TERRITÓRIO
+==================================================
+
+Criar uma área de mapa ou visão territorial da campanha.
+
+Esse módulo deve permitir:
+- visualizar regiões da campanha
+- destacar regiões prioritárias
+- marcar regiões para observação especial
+- permitir visão geral para vereador e coordenador geral
+- permitir visão filtrada para coordenador
+- limitar visão para líder conforme sua área
+- aplicar filtros por região, responsável, prioridade e status
+- ao clicar em uma região, mostrar informações úteis como quantidade de pessoas, responsáveis, nível de atividade ou necessidade de atenção, se isso fizer sentido na estrutura
+
+Objetivo:
+dar visão territorial clara para que o vereador não fique perdido em uma cidade grande e consiga focar sem perder o restante do cenário.
+
+==================================================
+6. MÓDULO DE EVENTOS
+==================================================
+
+Criar um módulo de eventos da campanha.
+
+Permitir:
+- cadastrar evento
+- editar evento
+- excluir evento, se fizer sentido
+- visualizar lista de eventos
+- visualizar detalhes do evento
+- associar evento a região
+- associar responsáveis
+- permitir visualização conforme perfil
+
+Campos sugeridos:
+- nome do evento
+- data
+- horário
+- local
+- região
+- descrição
+- responsáveis
+- observações
+- status do evento
+
+Se fizer sentido, criar visualização por lista e calendário.
+
+==================================================
+7. PERSONALIZAÇÃO DA CAMPANHA
+==================================================
+
+Criar uma área de identidade da campanha para deixar o aplicativo com a cara do vereador.
+
+Permitir:
+- upload da foto do vereador
+- slogan
+- número da campanha
+- cores da campanha
+- logotipo, se quiser incluir
+- santinho ou material visual
+- música ou jingle da campanha
+- informações institucionais da campanha
+
+Essas informações devem refletir no visual do sistema quando possível:
+- cabeçalhos
+- login
+- dashboard
+- menus
+- detalhes visuais principais
+
+==================================================
+8. GESTÃO DE USUÁRIOS E CADASTROS
+==================================================
+
+Criar estrutura de gestão para:
+- pessoas / contatos / eleitores
+- líderes
+- coordenadores
+- coordenadores gerais, se necessário
+- vínculo entre usuários e regiões
+- vínculo entre contatos e responsáveis
+
+Necessidades:
+- formulários claros
+- listagem com busca
+- filtros
+- edição simples
+- visual organizado
+- relacionamento entre entidades
+- experiência prática no celular
+
+Se a aplicação já possuir parte disso, reorganize e melhore.
+
+==================================================
+9. EXPERIÊNCIA, DESIGN E NAVEGAÇÃO
+==================================================
+
+Quero um sistema bonito e profissional.
+
+Melhore tudo o que for necessário em:
+- layout
+- usabilidade
+- hierarquia visual
+- organização do menu
+- experiência mobile
+- experiência desktop
+- legibilidade
+- organização dos cards
+- clareza de botões
+- espaçamento
+- consistência visual
+
+Estilo desejado:
+- moderno
+- limpo
+- elegante
+- sem poluição
+- objetivo
+- profissional
+- pensado para pessoas ocupadas
+
+Pense em um sistema que o vereador, o coordenador geral e o líder consigam usar sem dificuldade.
+
+==================================================
+10. ESTRUTURA TÉCNICA NO REPLIT
+==================================================
+
+Como o projeto está sendo desenvolvido no Replit:
+- mantenha a estrutura simples
+- organize bem páginas, componentes, hooks, serviços e permissões
+- evite duplicação de código
+- centralize regras de acesso
+- melhore a base existente, em vez de só empilhar novas funcionalidades
+- preserve compatibilidade com o que já foi feito
+- corrija inconsistências encontradas
+- deixe o projeto preparado para crescer depois
+
+Quero uma base organizada, fácil de manter e fácil de evoluir.
+
+==================================================
+11. MELHORIAS INTELIGENTES QUE VOCÊ DEVE CONSIDERAR
+==================================================
+
+Além do que foi pedido, avalie e implemente, se fizer sentido:
+- página inicial diferente por perfil
+- indicadores resumidos no topo
+- sistema de alertas visuais
+- destaque para regiões críticas
+- filtros rápidos
+- cards de ações principais
+- melhor fluxo de cadastro
+- melhor organização entre campanha, equipe, eventos e território
+- feedback visual ao salvar, editar ou excluir
+- carregamento mais agradável
+- estados vazios bem feitos
+- mensagens de erro mais claras
+- design consistente com a identidade da campanha
+
+==================================================
+12. O QUE EU ESPERO COMO RESULTADO
+==================================================
+
+Quero que você:
+1. leia tudo com atenção
+2. compare com o projeto atual
+3. preserve o que já está bom
+4. implemente o que falta
+5. melhore o que estiver ruim
+6. reorganize o sistema
+7. fortaleça as permissões por perfil
+8. deixe os dashboards mais úteis
+9. deixe o app mais bonito e profissional
+10. entregue uma evolução coerente, integrada e bem pensada
+
+Se encontrar conflito entre o que já foi feito e o que está sendo pedido agora:
+- prefira a solução mais útil
+- mais clara
+- mais moderna
+- mais organizada
+- mais alinhada ao objetivo do produto
+
+Não quero apenas adicionar telas.
+Quero melhorar o sistema como um todo.
+
+Se necessário:
+- refatore componentes
+- reorganize menus
+- melhore a experiência
+- simplifique fluxos confusos
+- deixe a aplicação mais madura
+
+Importante:
+mantenha também as funcionalidades inteligentes já existentes e qualquer solução boa que você já tenha criado antes, desde que faça sentido para esse produto.

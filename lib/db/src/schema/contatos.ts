@@ -10,6 +10,7 @@ export const contatosTable = pgTable("contatos", {
   rua_referencia: text("rua_referencia"),
   nivel: text("nivel").notNull().$type<"contato" | "simpatizante" | "fechado">(),
   observacao: text("observacao"),
+  origem: text("origem"),
   lider_id: integer("lider_id"),
   coordenador_id: integer("coordenador_id"),
   regiao_id: integer("regiao_id"),

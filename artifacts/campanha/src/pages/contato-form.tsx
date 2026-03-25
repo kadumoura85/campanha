@@ -12,20 +12,30 @@ interface Contato {
   rua_referencia: string | null;
   nivel: string;
   observacao: string | null;
+  origem: string | null;
   lider_id: number | null;
   coordenador_id: number | null;
   regiao_id: number | null;
 }
 
-interface Regiao {
-  id: number;
-  nome: string;
-}
+interface Regiao { id: number; nome: string; }
 
 const NIVEL_OPTIONS = [
-  { value: "contato", label: "Contato", desc: "Ainda não declarou apoio", emoji: "👤" },
+  { value: "contato",      label: "Contato",      desc: "Ainda não declarou apoio", emoji: "👤" },
   { value: "simpatizante", label: "Simpatizante", desc: "Simpatiza com a campanha", emoji: "🟡" },
-  { value: "fechado", label: "Fechado", desc: "Voto garantido", emoji: "✅" },
+  { value: "fechado",      label: "Fechado",      desc: "Voto garantido",           emoji: "✅" },
+];
+
+const ORIGEM_OPTIONS = [
+  { value: "", label: "Não informada" },
+  { value: "indica_lider", label: "Indicação de Líder" },
+  { value: "indica_coordenador", label: "Indicação de Coordenador" },
+  { value: "evento", label: "Evento da Campanha" },
+  { value: "caminhada", label: "Caminhada / Ação de Rua" },
+  { value: "redes_sociais", label: "Redes Sociais" },
+  { value: "boca_a_boca", label: "Boca a Boca" },
+  { value: "contato_direto", label: "Contato Direto" },
+  { value: "outro", label: "Outro" },
 ];
 
 export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
@@ -35,7 +45,7 @@ export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
 
   const [form, setForm] = useState({
     nome: "", telefone: "", bairro: "", rua_referencia: "",
-    nivel: "contato", observacao: "",
+    nivel: "contato", observacao: "", origem: "",
   });
   const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [regiaoId, setRegiaoId] = useState<string>("");
@@ -60,6 +70,7 @@ export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
             rua_referencia: data.rua_referencia || "",
             nivel: data.nivel,
             observacao: data.observacao || "",
+            origem: data.origem || "",
           });
           if (data.regiao_id) setRegiaoId(String(data.regiao_id));
         })
@@ -84,6 +95,7 @@ export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
         rua_referencia: form.rua_referencia || null,
         nivel: form.nivel,
         observacao: form.observacao || null,
+        origem: form.origem || null,
         regiao_id: regiaoId ? Number(regiaoId) : null,
       };
       if (modo === "novo") {
@@ -113,7 +125,7 @@ export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
       <div className="p-4 max-w-lg mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => navigate("/contatos")}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200">
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600">
             ←
           </button>
           <div>
@@ -136,12 +148,15 @@ export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+
+          {/* Nome */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nome <span className="text-red-500">*</span></label>
             <input name="nome" value={form.nome} onChange={handleChange} required placeholder="Nome completo"
               className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
 
+          {/* Telefone */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Telefone <span className="text-red-500">*</span></label>
             <input name="telefone" type="tel" value={form.telefone} onChange={handleChange} required placeholder="(11) 99999-9999"
@@ -150,33 +165,39 @@ export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
 
           {/* Nível visual */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Nível</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Nível de acompanhamento</label>
             <div className="grid grid-cols-3 gap-2">
               {NIVEL_OPTIONS.map(opt => (
                 <button key={opt.value} type="button"
                   onClick={() => setForm(f => ({ ...f, nivel: opt.value }))}
                   className={`rounded-xl p-3 text-center border-2 transition-all ${form.nivel === opt.value
-                    ? opt.value === "fechado" ? "border-green-500 bg-green-50" : opt.value === "simpatizante" ? "border-yellow-500 bg-yellow-50" : "border-gray-400 bg-gray-50"
-                    : "border-gray-200 bg-white"}`}>
+                    ? opt.value === "fechado" ? "border-green-500 bg-green-50"
+                    : opt.value === "simpatizante" ? "border-yellow-500 bg-yellow-50"
+                    : "border-gray-400 bg-gray-50"
+                    : "border-gray-200 bg-white hover:border-gray-300"}`}>
                   <p className="text-xl mb-1">{opt.emoji}</p>
                   <p className="text-xs font-bold text-gray-700">{opt.label}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 leading-tight">{opt.desc}</p>
                 </button>
               ))}
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
-            <input name="bairro" value={form.bairro} onChange={handleChange} placeholder="Bairro"
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          {/* Bairro + Rua */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+              <input name="bairro" value={form.bairro} onChange={handleChange} placeholder="Bairro"
+                className="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Rua / Referência</label>
+              <input name="rua_referencia" value={form.rua_referencia} onChange={handleChange} placeholder="Rua ou referência"
+                className="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Rua / Referência</label>
-            <input name="rua_referencia" value={form.rua_referencia} onChange={handleChange} placeholder="Rua, número ou ponto de referência"
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-
+          {/* Região */}
           {regioes.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Região</label>
@@ -188,17 +209,34 @@ export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
             </div>
           )}
 
+          {/* Origem */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Observação</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Como chegou até nós</label>
+            <select name="origem" value={form.origem} onChange={handleChange}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              {ORIGEM_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+
+          {/* Observação */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
             <textarea name="observacao" value={form.observacao} onChange={handleChange} rows={3}
-              placeholder="Anotações sobre o contato..."
+              placeholder="Anotações sobre o contato, contexto, informações relevantes..."
               className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
           </div>
 
           <button type="submit" disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-4 rounded-xl disabled:opacity-50 text-sm">
-            {loading ? "Salvando..." : modo === "novo" ? "Cadastrar Contato" : "Salvar Alterações"}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-4 rounded-xl disabled:opacity-50 text-sm active:scale-95 transition-transform">
+            {loading ? "Salvando..." : modo === "novo" ? "✅ Cadastrar Contato" : "💾 Salvar Alterações"}
           </button>
+
+          {modo === "editar" && (
+            <button type="button" onClick={() => navigate("/contatos")}
+              className="w-full border border-gray-200 text-gray-500 py-3 rounded-xl text-sm hover:bg-gray-50">
+              Cancelar
+            </button>
+          )}
         </form>
       </div>
     </Layout>

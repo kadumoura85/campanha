@@ -13,6 +13,7 @@ const contatoSelect = {
   rua_referencia: contatosTable.rua_referencia,
   nivel: contatosTable.nivel,
   observacao: contatosTable.observacao,
+  origem: contatosTable.origem,
   lider_id: contatosTable.lider_id,
   coordenador_id: contatosTable.coordenador_id,
   regiao_id: contatosTable.regiao_id,
@@ -67,7 +68,7 @@ router.post("/contatos", async (req, res): Promise<void> => {
     res.status(403).json({ error: "Perfil não autorizado a cadastrar contatos" }); return;
   }
 
-  const { nome, telefone, bairro, rua_referencia, nivel, observacao, lider_id: bodyLiderId, coordenador_id: bodyCoordId, regiao_id: bodyRegiaoId } = req.body;
+  const { nome, telefone, bairro, rua_referencia, nivel, observacao, origem, lider_id: bodyLiderId, coordenador_id: bodyCoordId, regiao_id: bodyRegiaoId } = req.body;
 
   if (!nome || !telefone || !nivel) {
     res.status(400).json({ error: "Campos obrigatórios: nome, telefone, nivel" }); return;
@@ -95,7 +96,7 @@ router.post("/contatos", async (req, res): Promise<void> => {
 
   const [contato] = await db.insert(contatosTable).values({
     nome, telefone, bairro: bairro || null, rua_referencia: rua_referencia || null,
-    nivel, observacao: observacao || null, lider_id, coordenador_id, regiao_id,
+    nivel, observacao: observacao || null, origem: origem || null, lider_id, coordenador_id, regiao_id,
   }).returning();
 
   const liderNome = lider_id
@@ -154,7 +155,7 @@ router.patch("/contatos/:id", async (req, res): Promise<void> => {
     if (dup) { res.status(400).json({ error: "Telefone já cadastrado" }); return; }
   }
 
-  const allowed = ["nome", "telefone", "bairro", "rua_referencia", "nivel", "observacao", "lider_id", "coordenador_id", "regiao_id"];
+  const allowed = ["nome", "telefone", "bairro", "rua_referencia", "nivel", "observacao", "origem", "lider_id", "coordenador_id", "regiao_id"];
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
     if (req.body[key] !== undefined) updates[key] = req.body[key];

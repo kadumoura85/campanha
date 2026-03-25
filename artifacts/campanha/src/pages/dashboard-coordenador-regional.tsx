@@ -116,16 +116,16 @@ export default function DashboardCoordenadorRegionalPage() {
             {/* Ações rápidas */}
             <div className="grid grid-cols-2 gap-3 mb-5">
               <button
-                onClick={() => navigate("/contatos/novo")}
+                onClick={() => navigate("/contatos")}
                 className="bg-indigo-600 text-white rounded-2xl p-4 text-center font-semibold text-sm shadow active:scale-95 transition-transform"
               >
-                ➕ Cadastrar Pessoa
+                👥 Ver Contatos
               </button>
               <button
-                onClick={() => navigate("/contatos")}
+                onClick={() => navigate("/regioes")}
                 className="bg-white border border-gray-200 text-gray-700 rounded-2xl p-4 text-center font-semibold text-sm shadow-sm active:scale-95 transition-transform"
               >
-                👥 Ver Contatos
+                📍 Minha Região
               </button>
             </div>
 

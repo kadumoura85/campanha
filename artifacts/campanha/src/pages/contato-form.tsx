@@ -43,7 +43,7 @@ export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
 
-  const podeAcessar = ["lider", "super_admin"].includes(usuario?.tipo || "");
+  const podeAcessar = ["lider", "coordenador_geral", "super_admin"].includes(usuario?.tipo || "");
 
   const [form, setForm] = useState({
     nome: "", telefone: "", bairro: "", rua_referencia: "",

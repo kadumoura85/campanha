@@ -41,8 +41,8 @@ export default function ContatosPage() {
   const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [lideres, setLideres] = useState<Lider[]>([]);
 
-  const podeCadastrar = ["lider", "super_admin"].includes(usuario?.tipo || "");
-  const podeEditar = ["lider", "super_admin"].includes(usuario?.tipo || "");
+  const podeCadastrar = ["lider", "coordenador_geral", "super_admin"].includes(usuario?.tipo || "");
+  const podeEditar = ["lider", "coordenador_geral", "super_admin"].includes(usuario?.tipo || "");
   const showLiderFilter = ["vereador", "super_admin", "coordenador_geral", "coordenador_regional"].includes(usuario?.tipo || "");
   const showRegiaoFilter = ["vereador", "super_admin", "coordenador_geral"].includes(usuario?.tipo || "");
 

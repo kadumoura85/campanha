@@ -38,7 +38,8 @@ export default function RegiaoDetalhePage() {
   const [, navigate] = useLocation();
   const { usuario } = useAuth();
 
-  const canEdit = ["super_admin", "vereador", "coordenador_geral"].includes(usuario?.tipo || "");
+  const canChangePriority = ["super_admin", "vereador", "coordenador_geral"].includes(usuario?.tipo || "");
+  const canAddObs = ["super_admin", "vereador", "coordenador_geral", "coordenador_regional"].includes(usuario?.tipo || "");
 
   const load = () => {
     setLoading(true);
@@ -132,7 +133,7 @@ export default function RegiaoDetalhePage() {
         </div>
 
         {/* Prioridade */}
-        {canEdit && (
+        {canChangePriority && (
           <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
             <p className="text-sm font-semibold text-gray-700 mb-3">Alterar Prioridade</p>
             <div className="flex gap-2">
@@ -208,12 +209,12 @@ export default function RegiaoDetalhePage() {
             </div>
           )}
 
-          {canEdit && (
+          {canAddObs && (
             <div className="mt-3">
               <textarea
                 value={novaObs}
                 onChange={(e) => setNovaObs(e.target.value)}
-                placeholder="Adicionar observação estratégica..."
+                placeholder="Adicionar observação..."
                 rows={2}
                 className="w-full text-sm border border-gray-200 rounded-xl p-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
               />

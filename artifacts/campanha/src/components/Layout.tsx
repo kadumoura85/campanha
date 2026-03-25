@@ -33,8 +33,8 @@ const navItems: Record<TipoUsuario, { href: string; label: string; icon: string 
   ],
   coordenador_regional: [
     { href: "/dashboard/coordenador-regional", label: "Dashboard", icon: "📊" },
-    { href: "/usuarios", label: "Líderes", icon: "👥" },
-    { href: "/contatos", label: "Contatos", icon: "📋" },
+    { href: "/regioes", label: "Regiões", icon: "📍" },
+    { href: "/contatos", label: "Contatos", icon: "👥" },
     { href: "/agenda", label: "Agenda", icon: "📅" },
   ],
   lider: [

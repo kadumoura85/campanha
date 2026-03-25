@@ -43,7 +43,7 @@ export default function UsuariosPage() {
   const [filterTipo, setFilterTipo] = useState("");
   const { usuario } = useAuth();
 
-  const canEdit = ["super_admin", "vereador", "coordenador_geral", "coordenador_regional"].includes(usuario?.tipo || "");
+  const canEdit = ["super_admin", "vereador", "coordenador_geral"].includes(usuario?.tipo || "");
   const tiposPermitidos = usuario ? getTiposPermitidos(usuario.tipo) : [];
   const isCoordRegional = usuario?.tipo === "coordenador_regional";
 

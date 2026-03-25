@@ -13,17 +13,12 @@ router.get("/usuarios", async (req, res): Promise<void> => {
   const usuario = await getUsuarioFromRequest(req);
   if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
 
-  const allowed = [...ADMIN_TYPES, "coordenador_regional"];
-  if (!allowed.includes(usuario.tipo)) {
+  if (!ADMIN_TYPES.includes(usuario.tipo)) {
     res.status(403).json({ error: "Acesso negado" }); return;
   }
 
   const { tipo, coordenador_id } = req.query;
   const conditions: any[] = [];
-
-  if (usuario.tipo === "coordenador_regional") {
-    conditions.push(eq(usuariosTable.coordenador_id, usuario.id));
-  }
 
   if (tipo) conditions.push(eq(usuariosTable.tipo, tipo as string));
   if (coordenador_id) conditions.push(eq(usuariosTable.coordenador_id, parseInt(coordenador_id as string, 10)));
@@ -51,7 +46,7 @@ router.post("/usuarios", async (req, res): Promise<void> => {
   const usuario = await getUsuarioFromRequest(req);
   if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
 
-  const canCreate = [...ADMIN_TYPES, "coordenador_regional"].includes(usuario.tipo);
+  const canCreate = ADMIN_TYPES.includes(usuario.tipo);
   if (!canCreate) { res.status(403).json({ error: "Acesso negado" }); return; }
 
   const parsed = CreateUsuarioBody.safeParse(req.body);
@@ -130,7 +125,7 @@ router.patch("/usuarios/:id", async (req, res): Promise<void> => {
   const usuario = await getUsuarioFromRequest(req);
   if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
 
-  const canEdit = [...ADMIN_TYPES, "coordenador_regional"].includes(usuario.tipo);
+  const canEdit = ADMIN_TYPES.includes(usuario.tipo);
   if (!canEdit) { res.status(403).json({ error: "Acesso negado" }); return; }
 
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
@@ -139,11 +134,7 @@ router.patch("/usuarios/:id", async (req, res): Promise<void> => {
   const [target] = await db.select().from(usuariosTable).where(eq(usuariosTable.id, id));
   if (!target) { res.status(404).json({ error: "Usuário não encontrado" }); return; }
 
-  if (usuario.tipo === "coordenador_regional") {
-    if (target.tipo !== "lider" || target.coordenador_id !== usuario.id) {
-      res.status(403).json({ error: "Acesso negado" }); return;
-    }
-  } else if (usuario.tipo === "coordenador_geral") {
+  if (usuario.tipo === "coordenador_geral") {
     if (!["coordenador_regional", "lider"].includes(target.tipo)) {
       res.status(403).json({ error: "Coordenador Geral só pode editar coordenadores e líderes" }); return;
     }

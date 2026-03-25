@@ -1,0 +1,229 @@
+Baseado no que já foi desenvolvido no sistema, quero que você implemente e melhore a parte visual do dashboard do perfil VEREADOR com foco em gráficos automáticos, leitura rápida e tomada de decisão.
+
+Objetivo:
+O dashboard do vereador precisa ser simples, bonito, intuitivo e muito fácil de entender.
+O vereador deve abrir a aplicação e, em poucos segundos, entender:
+- como está a campanha
+- onde está crescendo
+- onde está fraca
+- quais regiões exigem atenção
+- quem está performando melhor
+- quem está performando pior
+
+Importante:
+- não transformar isso em um painel técnico demais
+- não poluir a tela
+- priorizar gráficos simples e fáceis de ler
+- manter a experiência limpa, moderna e profissional
+- funcionar bem no celular e no desktop
+- aproveitar os dados já existentes no sistema
+- gerar os gráficos automaticamente com base nos dados reais cadastrados
+
+==================================================
+DASHBOARD DO VEREADOR - GRÁFICOS AUTOMÁTICOS
+==================================================
+
+Quero que o dashboard do vereador tenha uma seção visual forte com gráficos automáticos.
+
+Esses gráficos devem ser alimentados com os dados já existentes no sistema, sem precisar cadastrar manualmente dados extras.
+
+--------------------------------------------------
+1. GRÁFICO DE EVOLUÇÃO DA CAMPANHA
+--------------------------------------------------
+
+Criar um gráfico de linha mostrando a evolução da campanha ao longo do tempo.
+
+Sugestões do que mostrar:
+- crescimento de pessoas cadastradas por dia ou por semana
+- evolução de atividade por região, se fizer sentido com os dados já existentes
+
+Objetivo:
+- mostrar se a campanha está crescendo
+- mostrar se o ritmo está bom ou caiu
+
+Requisitos:
+- visual limpo
+- fácil leitura
+- destaque para tendência de crescimento ou queda
+- período filtrável se isso já estiver estruturado ou for simples de implementar
+
+--------------------------------------------------
+2. GRÁFICO DE COMPARAÇÃO POR REGIÃO
+--------------------------------------------------
+
+Criar um gráfico de barras comparando regiões.
+
+Mostrar:
+- quantidade de pessoas cadastradas por região
+ou
+- nível de atividade por região
+ou
+- algum indicador territorial relevante já existente no sistema
+
+Objetivo:
+- identificar rapidamente regiões fortes
+- identificar rapidamente regiões fracas
+- facilitar comparação entre áreas
+
+Requisitos:
+- barras fáceis de ler
+- nomes das regiões bem visíveis
+- ordenação automática do maior para o menor, se ficar melhor visualmente
+
+--------------------------------------------------
+3. GRÁFICO DE DISTRIBUIÇÃO GERAL
+--------------------------------------------------
+
+Criar um gráfico de donut ou pizza com visão proporcional.
+
+Mostrar, por exemplo:
+- participação de cada região no total
+- distribuição da base por região
+- ou outra divisão geral que faça sentido com os dados do sistema
+
+Objetivo:
+- dar visão rápida da distribuição geral da campanha
+
+Requisitos:
+- usar poucas categorias visíveis
+- não deixar confuso
+- exibir percentuais ou números de forma clara
+
+--------------------------------------------------
+4. GRÁFICO OU INDICADOR DE META / PROGRESSO
+--------------------------------------------------
+
+Criar um componente visual de progresso.
+
+Mostrar, por exemplo:
+- total atual de pessoas cadastradas versus meta
+- total de líderes ativos versus meta
+- ou outro indicador importante já existente ou simples de calcular
+
+Objetivo:
+- mostrar o quanto já foi alcançado
+- deixar claro o que falta
+
+Requisitos:
+- visual forte
+- leitura rápida
+- estilo moderno
+- sem complexidade desnecessária
+
+==================================================
+5. RANKING SIMPLES (MUITO IMPORTANTE)
+==================================================
+
+Além dos gráficos, criar uma seção de ranking simples e visual.
+
+Mostrar:
+
+1. Melhores regiões
+- regiões com melhor desempenho
+- regiões com mais atividade
+- regiões com mais pessoas cadastradas
+ou outro critério coerente com os dados do sistema
+
+2. Piores regiões
+- regiões com menor atividade
+- regiões com menos pessoas cadastradas
+- regiões que precisam de atenção
+
+3. Líderes mais ativos
+- líderes com mais cadastros
+- líderes com maior movimentação
+- líderes com melhor desempenho, conforme os dados disponíveis
+
+Objetivo:
+- o vereador entender rápido quem está performando melhor
+- visualizar de forma intuitiva onde a campanha está forte e fraca
+- transformar informação em leitura simples
+
+Requisitos:
+- ranking visualmente limpo
+- pode ser em cards, listas ou blocos destacados
+- deve ser muito fácil de bater o olho e entender
+- evitar excesso de detalhe técnico
+- destacar posições com boa hierarquia visual
+
+==================================================
+6. ORGANIZAÇÃO DA TELA
+==================================================
+
+Sugestão de organização do dashboard do vereador:
+
+1. cards principais no topo
+- total de pessoas
+- líderes ativos
+- coordenadores
+- eventos próximos
+
+2. gráfico de evolução da campanha
+
+3. gráfico de comparação por região
+
+4. mapa da cidade/regiões
+
+5. gráfico de distribuição geral
+
+6. indicador de meta/progresso
+
+7. ranking simples:
+- melhores regiões
+- piores regiões
+- líderes mais ativos
+
+==================================================
+7. EXPERIÊNCIA DO VEREADOR
+==================================================
+
+A tela deve ser feita para um vereador usar de forma natural.
+
+Ela precisa ser:
+- clara
+- objetiva
+- bonita
+- rápida
+- intuitiva
+- focada em decisão
+
+O vereador não quer analisar planilhas dentro do app.
+Ele quer olhar e entender.
+
+Se ficar complexo, está errado.
+Se ficar bonito mas confuso, está errado.
+Se ficar simples, visual e acionável, está certo.
+
+==================================================
+8. IMPLEMENTAÇÃO
+==================================================
+
+Quero que você:
+- use os dados reais já existentes no sistema
+- crie esses gráficos automaticamente
+- organize bem os componentes visuais
+- melhore o layout do dashboard se necessário
+- deixe a experiência mais profissional
+- mantenha tudo responsivo
+- preserve o que já estiver bom
+- refatore o que estiver confuso
+
+Se algum gráfico não puder ser montado exatamente com os dados atuais, adapte de forma inteligente usando os dados disponíveis, sem travar a evolução do sistema.
+
+==================================================
+9. RESULTADO ESPERADO
+==================================================
+
+Quero um dashboard do vereador com cara de produto profissional, com leitura rápida e foco em decisão.
+
+Prioridade máxima:
+- gráfico de evolução
+- gráfico por região
+- gráfico de distribuição
+- indicador de progresso
+- ranking simples com:
+  - melhores regiões
+  - piores regiões
+  - líderes mais ativos
+
+Implemente isso da melhor forma possível, mantendo coerência com o sistema já criado e melhorando o que for necessário.

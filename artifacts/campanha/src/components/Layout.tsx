@@ -20,16 +20,18 @@ const navItems: Record<TipoUsuario, { href: string; label: string; icon: string 
   vereador: [
     { href: "/dashboard/vereador", label: "Dashboard", icon: "📊" },
     { href: "/mapa", label: "Mapa", icon: "🗺️" },
-    { href: "/usuarios", label: "Equipe", icon: "👥" },
+    { href: "/contatos", label: "Pessoas", icon: "👥" },
+    { href: "/usuarios", label: "Equipe", icon: "🧑‍🤝‍🧑" },
     { href: "/agenda", label: "Agenda", icon: "📅" },
     { href: "/configuracao", label: "Config", icon: "⚙️" },
   ],
   coordenador_geral: [
     { href: "/dashboard/vereador", label: "Dashboard", icon: "📊" },
     { href: "/mapa", label: "Mapa", icon: "🗺️" },
-    { href: "/contatos", label: "Contatos", icon: "👥" },
-    { href: "/usuarios", label: "Equipe", icon: "👤" },
+    { href: "/contatos", label: "Pessoas", icon: "👥" },
+    { href: "/usuarios", label: "Equipe", icon: "🧑‍🤝‍🧑" },
     { href: "/agenda", label: "Agenda", icon: "📅" },
+    { href: "/configuracao", label: "Config", icon: "⚙️" },
   ],
   coordenador_regional: [
     { href: "/dashboard/coordenador-regional", label: "Dashboard", icon: "📊" },
@@ -116,24 +118,27 @@ export default function Layout({ children }: LayoutProps) {
       {/* Bottom Navigation */}
       <nav className="text-white border-t border-white/20 fixed bottom-0 left-0 right-0 z-50 shadow-2xl"
         style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
-        <div className="flex items-center justify-around max-w-screen-xl mx-auto">
+        <div className="flex items-center justify-around max-w-screen-xl mx-auto w-full">
           {items.map((item) => {
             const isDashboardLink = item.href.startsWith("/dashboard/");
             const isActive = location === item.href || (
               !isDashboardLink && location.startsWith(item.href)
             );
+            const compact = items.length >= 6;
             return (
               <button
                 key={item.href}
                 onClick={() => navigate(item.href)}
-                className={`flex flex-col items-center gap-0.5 py-2 px-3 flex-1 transition-all ${
+                className={`flex flex-col items-center gap-0 flex-1 transition-all ${
+                  compact ? "py-1.5 px-1" : "py-2 px-3"
+                } ${
                   isActive
                     ? "text-white bg-white/20"
                     : "text-white/70 hover:text-white hover:bg-white/10"
                 }`}
               >
-                <span className="text-lg leading-none">{item.icon}</span>
-                <span className="text-xs font-medium mt-0.5">{item.label}</span>
+                <span className={`leading-none ${compact ? "text-base" : "text-lg"}`}>{item.icon}</span>
+                <span className={`font-medium mt-0.5 ${compact ? "text-[10px]" : "text-xs"}`}>{item.label}</span>
               </button>
             );
           })}

@@ -39,6 +39,7 @@ const navItems: Record<TipoUsuario, { href: string; label: string; icon: string 
     { href: "/mapa", label: "Mapa", icon: "🗺️" },
     { href: "/contatos", label: "Contatos", icon: "👥" },
     { href: "/agenda", label: "Campo", icon: "📅" },
+    { href: "/configuracao", label: "Config", icon: "⚙️" },
   ],
   lider: [
     { href: "/dashboard/lider", label: "Dashboard", icon: "🏠" },

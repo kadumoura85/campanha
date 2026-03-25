@@ -1,0 +1,49 @@
+2.1 Vereador
+--------------------------------------------------
+
+Perfil mais estratégico do sistema.
+
+Permissões:
+- visualizar dashboard geral da campanha
+- visualizar mapa completo da cidade ou regiões
+- acompanhar indicadores gerais e estratégicos
+- acompanhar desempenho por região
+- visualizar regiões com mais força e regiões com menos acompanhamento
+- marcar regiões prioritárias para maior atenção
+- continuar acompanhando as demais regiões sem perder a visão geral
+- visualizar coordenadores, líderes e pessoas cadastradas
+- acompanhar eventos da campanha
+- visualizar resumos consolidados da operação
+
+
+--------------------------------------------------
+2.2 Coordenador Geral
+--------------------------------------------------
+
+Perfil com visão ampla, muito próximo ao vereador na operação e gestão.
+
+Permissões:
+- visualizar dashboard geral
+- visualizar mapa geral da campanha
+- acompanhar indicadores gerais
+- acompanhar regiões prioritárias
+- cadastrar pessoas
+- cadastrar coordenadores
+- cadastrar líderes
+- gerenciar estrutura da campanha
+- criar e editar eventos
+- visualizar a operação quase completa
+- ter acesso gerencial semelhante ao do vereador, exceto pontos sensíveis que você julgar melhor deixar exclusivos do vereador
+- se a estrutura atual já permitir, também pode editar parte das informações institucionais da campanha
+- acessar a área de personalização da campanha
+- editar foto do vereador, editar slogan, editar número da campanha, editar cores da aplicação com base na identidade da campanha, adicionar jingle ou música da campanha, adicionar santinho ou material visual, editar informações gerais da campanha
+- visualizar dashboard geral da campanha
+- visualizar mapa completo da cidade ou regiões
+- acompanhar indicadores gerais e estratégicos
+- acompanhar desempenho por região
+- visualizar regiões com mais força e regiões com menos acompanhamento
+- marcar regiões prioritárias para maior atenção
+- continuar acompanhando as demais regiões sem perder a visão geral
+- visualizar coordenadores, líderes e pessoas cadastradas
+- acompanhar eventos da campanha
+- visualizar resumos consolidados da operação

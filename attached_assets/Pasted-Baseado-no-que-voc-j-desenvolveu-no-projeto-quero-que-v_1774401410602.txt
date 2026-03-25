@@ -1,0 +1,136 @@
+Baseado no que você já desenvolveu no projeto, quero que você analise este prompt e implemente exatamente o que está descrito abaixo.
+
+Importante:
+- preserve tudo o que já estiver funcionando bem
+- não remova funcionalidades úteis já existentes
+- implemente o que ainda falta
+- melhore o que estiver fraco, confuso ou mal organizado
+- una as funcionalidades antigas com as novas de forma coerente
+- pense como produto real, não apenas como código
+- mantenha a estrutura simples, organizada e fácil de evoluir dentro do Replit
+- tome decisões inteligentes de arquitetura, UX e design quando perceber oportunidades claras de melhoria
+- priorize clareza, usabilidade, velocidade e visual profissional
+- a aplicação precisa funcionar bem tanto no celular quanto no desktop
+
+==================================================
+OBJETIVO DO PRODUTO
+==================================================
+
+A aplicação deve ajudar o vereador e sua equipe a:
+- organizar a campanha
+- acompanhar regiões e territórios
+- cadastrar e gerenciar pessoas
+- acompanhar coordenadores e líderes
+- visualizar informações importantes em dashboard
+- identificar regiões que precisam de mais atenção
+- planejar e visualizar eventos
+- personalizar o sistema com a identidade visual da campanha
+
+A sensação do produto deve ser:
+- clara
+- moderna
+- bonita
+- profissional
+- intuitiva
+- prática
+- útil de verdade no dia a dia de uma campanha
+
+==================================================
+PERFIS DE ACESSO (AJUSTADOS)
+==================================================
+
+--------------------------------------------------
+2.1 Vereador
+--------------------------------------------------
+
+Perfil mais estratégico do sistema.
+
+Regra principal:
+O vereador NÃO deve ver tudo. Ele deve ver apenas o que é realmente importante para tomada de decisão.
+
+A interface deve ser limpa, direta e focada em decisão.
+
+Permissões:
+- visualizar dashboard geral da campanha (simplificado e estratégico)
+- visualizar mapa completo da cidade ou regiões
+- acompanhar indicadores gerais e estratégicos
+- acompanhar desempenho por região
+- visualizar regiões com mais força e regiões com menos acompanhamento
+- marcar regiões prioritárias para maior atenção
+- continuar acompanhando as demais regiões sem perder a visão geral
+- visualizar coordenadores, líderes e pessoas cadastradas (de forma resumida)
+- acompanhar eventos da campanha
+- visualizar resumos consolidados da operação
+
+Importante:
+- evitar excesso de informação
+- priorizar visão executiva
+- destacar o que exige atenção
+- reduzir complexidade visual
+
+--------------------------------------------------
+2.2 Coordenador Geral
+--------------------------------------------------
+
+Perfil com visão ampla e operacional completa.
+
+Regra principal:
+O Coordenador Geral tem o MESMO nível de acesso do Vereador, porém com mais liberdade operacional.
+
+Ou seja:
+- vê tudo que o vereador vê
+- e também pode gerenciar, editar e estruturar a campanha
+
+Permissões:
+
+Gestão:
+- cadastrar coordenadores
+- cadastrar líderes
+- gerenciar estrutura da campanha
+
+Eventos:
+- criar eventos
+- editar eventos
+
+Campanha (personalização):
+- acessar a área de personalização da campanha
+- editar foto do vereador
+- editar slogan
+- editar número da campanha
+- editar cores da aplicação com base na identidade da campanha
+- adicionar jingle ou música da campanha
+- adicionar santinho ou material visual
+- editar informações gerais da campanha
+
+Visão estratégica (igual ao vereador):
+- visualizar dashboard geral da campanha
+- visualizar mapa completo da cidade ou regiões
+- acompanhar indicadores gerais e estratégicos
+- acompanhar desempenho por região
+- visualizar regiões com mais força e regiões com menos acompanhamento
+- marcar regiões prioritárias para maior atenção
+- continuar acompanhando as demais regiões sem perder a visão geral
+- visualizar coordenadores, líderes e pessoas cadastradas
+- acompanhar eventos da campanha
+- visualizar resumos consolidados da operação
+
+Importante:
+- Coordenador Geral combina visão estratégica + poder de execução
+- deve conseguir operar o sistema sem depender do vereador
+
+==================================================
+DIRETRIZ FINAL
+==================================================
+
+- O Vereador deve ter uma experiência mais simples, limpa e focada em decisão
+- O Coordenador Geral deve ter uma experiência completa, com visão + gestão
+- Evitar duplicidade de telas desnecessárias
+- Reutilizar componentes sempre que possível
+- Diferenciar apenas o nível de acesso e ações disponíveis
+- Melhorar a experiência visual e organização das informações
+
+Se houver conflito com o que já foi feito:
+- priorize a solução mais clara
+- mais útil
+- mais simples
+- mais alinhada com uso real de campanha

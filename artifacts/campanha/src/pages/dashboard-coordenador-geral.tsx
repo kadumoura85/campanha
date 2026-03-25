@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import Layout from "@/components/Layout";
 import { apiGet } from "@/lib/api";
+import { useCampanha } from "@/contexts/CampanhaContext";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
+  AreaChart, Area,
 } from "recharts";
 
 interface StatsCoordenador {
@@ -36,6 +38,13 @@ interface StatsLider {
   fechados: number;
 }
 
+interface EvolucaoSemana {
+  semana: string;
+  total: number;
+  simpatizantes: number;
+  fechados: number;
+}
+
 interface Evento {
   id: number;
   titulo: string;
@@ -51,16 +60,37 @@ interface DashboardCoordenadorGeral {
   total_fechados: number;
   total_coordenadores: number;
   total_lideres: number;
+  total_regioes: number;
+  crescimento_semana: number;
+  evolucao_semanal: EvolucaoSemana[];
   por_coordenador: StatsCoordenador[];
   por_regiao: StatsRegiao[];
   ranking_lideres: StatsLider[];
   proximos_eventos: Evento[];
+  alertas: string[];
 }
+
+const prioridadeConfig: Record<string, { label: string; color: string; bg: string }> = {
+  normal:     { label: "Normal",      color: "text-gray-600",   bg: "bg-gray-50" },
+  atencao:    { label: "Atenção",     color: "text-yellow-700", bg: "bg-yellow-50" },
+  prioritaria:{ label: "Prioritária", color: "text-red-700",    bg: "bg-red-50" },
+};
+
+const tipoEventoLabel: Record<string, string> = {
+  reuniao: "📋 Reunião",
+  visita: "🚶 Visita",
+  caminhada: "👟 Caminhada",
+  comicio: "📣 Comício",
+  outro: "📌 Outro",
+};
 
 export default function DashboardCoordenadorGeralPage() {
   const [data, setData] = useState<DashboardCoordenadorGeral | null>(null);
   const [loading, setLoading] = useState(true);
   const [, navigate] = useLocation();
+  const { config } = useCampanha();
+  const [musicPlaying, setMusicPlaying] = useState(false);
+  const [audioEl, setAudioEl] = useState<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     apiGet<DashboardCoordenadorGeral>("/api/dashboard/coordenador-geral")
@@ -68,35 +98,126 @@ export default function DashboardCoordenadorGeralPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const toggleMusic = () => {
+    if (!config.musica_url) return;
+    if (!audioEl) {
+      const audio = new Audio(config.musica_url);
+      audio.loop = true;
+      audio.play();
+      setAudioEl(audio);
+      setMusicPlaying(true);
+    } else {
+      if (musicPlaying) { audioEl.pause(); setMusicPlaying(false); }
+      else { audioEl.play(); setMusicPlaying(true); }
+    }
+  };
+
+  const primary = config.cor_primaria || "#1d4ed8";
+  const secondary = config.cor_secundaria || "#1e40af";
+
   const pieData = data ? [
-    { name: "Contatos", value: Math.max(0, data.total_contatos - data.total_simpatizantes - data.total_fechados), color: "#6B7280" },
+    { name: "Outros", value: Math.max(0, data.total_contatos - data.total_simpatizantes - data.total_fechados), color: "#9CA3AF" },
     { name: "Simpatizantes", value: data.total_simpatizantes, color: "#F59E0B" },
     { name: "Fechados", value: data.total_fechados, color: "#10B981" },
   ].filter(d => d.value > 0) : [];
 
+  const evolucaoChart = (data?.evolucao_semanal || []).map((s, i) => ({
+    semana: `Sem ${i + 1}`,
+    Total: s.total,
+    Fechados: s.fechados,
+  }));
+
   return (
     <Layout>
       <div className="p-4 max-w-2xl mx-auto">
-        <div className="mb-5">
-          <h1 className="text-2xl font-bold text-gray-900">Operações</h1>
-          <p className="text-sm text-gray-500">Visão operacional da campanha</p>
+
+        {/* Candidate Banner */}
+        <div className="rounded-2xl p-5 mb-4 text-white shadow-lg relative overflow-hidden"
+          style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
+          <div className="flex items-center gap-4">
+            {config.foto_principal ? (
+              <img src={config.foto_principal} alt={config.nome_candidato}
+                className="w-16 h-16 rounded-full object-cover border-2 border-white/30 flex-shrink-0" />
+            ) : (
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-3xl">🏛️</span>
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-xl font-black truncate">{config.nome_candidato}</p>
+              {config.numero && (
+                <span className="inline-block bg-white/25 text-white text-xs font-bold px-2 py-0.5 rounded-full mt-0.5">
+                  Nº {config.numero}
+                </span>
+              )}
+              {config.slogan && (
+                <p className="text-xs text-white/70 italic mt-1 truncate">"{config.slogan}"</p>
+              )}
+            </div>
+            {config.musica_url && (
+              <button onClick={toggleMusic}
+                className="flex-shrink-0 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all">
+                <span className="text-base">{musicPlaying ? "⏸️" : "🎵"}</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {loading && (
           <div className="text-center py-16">
-            <div className="inline-block w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <div className="inline-block w-10 h-10 border-4 border-t-transparent rounded-full animate-spin"
+              style={{ borderColor: primary, borderTopColor: "transparent" }} />
           </div>
         )}
 
         {data && (
           <>
+            {/* Alertas */}
+            {data.alertas.length > 0 && (
+              <div className="mb-4 space-y-2">
+                {data.alertas.map((a, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-sm text-amber-800">
+                    <span className="text-base">⚠️</span>
+                    <span>{a}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Ações Rápidas */}
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <button onClick={() => navigate("/contatos/novo")}
+                className="text-white rounded-xl p-3 text-center font-semibold text-xs shadow active:scale-95 transition-transform"
+                style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
+                ➕ Novo Contato
+              </button>
+              <button onClick={() => navigate("/usuarios/novo")}
+                className="bg-white border border-gray-200 text-gray-700 rounded-xl p-3 text-center font-semibold text-xs shadow-sm active:scale-95 transition-transform">
+                👤 Nova Equipe
+              </button>
+              <button onClick={() => navigate("/agenda/novo")}
+                className="bg-white border border-gray-200 text-gray-700 rounded-xl p-3 text-center font-semibold text-xs shadow-sm active:scale-95 transition-transform">
+                📅 Novo Evento
+              </button>
+            </div>
+
             {/* Hero Card */}
-            <div className="bg-gradient-to-br from-teal-600 to-teal-800 rounded-2xl p-5 mb-4 text-white shadow-lg">
-              <p className="text-sm text-teal-200 mb-1">Total da Base</p>
-              <p className="text-6xl font-black">{data.total_contatos}</p>
-              <div className="flex gap-4 mt-3 text-sm">
+            <div className="rounded-2xl p-5 mb-4 text-white shadow-lg"
+              style={{ background: `linear-gradient(135deg, ${primary}cc, ${secondary})` }}>
+              <p className="text-sm text-white/70 mb-1">Total Geral da Base</p>
+              <div className="flex items-end gap-4">
+                <p className="text-6xl font-black leading-none">{data.total_contatos}</p>
+                <div className="mb-1">
+                  {data.crescimento_semana > 0 && (
+                    <span className="bg-green-400/30 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                      +{data.crescimento_semana} esta semana
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-5 mt-3 text-sm">
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-300" />
                   <span>{data.total_simpatizantes} simpatizantes</span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -106,44 +227,57 @@ export default function DashboardCoordenadorGeralPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
-                <p className="text-3xl font-bold text-teal-600">{data.total_coordenadores}</p>
-                <p className="text-xs text-gray-500 mt-1">Coordenadores</p>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center">
+                <p className="text-2xl font-bold" style={{ color: primary }}>{data.total_coordenadores}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Coordenadores</p>
               </div>
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
-                <p className="text-3xl font-bold text-purple-600">{data.total_lideres}</p>
-                <p className="text-xs text-gray-500 mt-1">Líderes</p>
+              <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center">
+                <p className="text-2xl font-bold text-purple-600">{data.total_lideres}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Líderes</p>
+              </div>
+              <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center">
+                <p className="text-2xl font-bold text-teal-600">{data.total_regioes}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Regiões</p>
               </div>
             </div>
 
-            {/* 1. Por Região */}
-            {data.por_regiao.length > 0 && (
+            {/* Evolução Semanal */}
+            {evolucaoChart.length > 0 && (
               <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-gray-700">Por Região</h2>
-                  <button onClick={() => navigate("/regioes")} className="text-xs text-teal-600">Ver →</button>
-                </div>
+                <h2 className="text-sm font-semibold text-gray-700 mb-3">📈 Evolução Semanal</h2>
                 <ResponsiveContainer width="100%" height={180}>
-                  <BarChart data={data.por_regiao.map(r => ({ name: r.regiao_nome || "Sem reg.", total: r.total, fechados: r.fechados }))}>
+                  <AreaChart data={evolucaoChart}>
+                    <defs>
+                      <linearGradient id="cgColorTotal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={primary} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={primary} stopOpacity={0.02} />
+                      </linearGradient>
+                      <linearGradient id="cgColorFechados" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#10B981" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                    <XAxis dataKey="semana" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 10 }} />
                     <Tooltip />
-                    <Bar dataKey="total" name="Total" fill="#14B8A6" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="fechados" name="Fechados" fill="#10B981" radius={[4, 4, 0, 0]} />
-                  </BarChart>
+                    <Area type="monotone" dataKey="Total" stroke={primary} strokeWidth={2} fill="url(#cgColorTotal)" />
+                    <Area type="monotone" dataKey="Fechados" stroke="#10B981" strokeWidth={2} fill="url(#cgColorFechados)" />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
             )}
 
-            {/* 2. Distribuição da Base */}
+            {/* Distribuição da Base */}
             {pieData.length > 0 && (
               <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-700 mb-3">Distribuição da Base</h2>
-                <ResponsiveContainer width="100%" height={200}>
+                <h2 className="text-sm font-semibold text-gray-700 mb-3">🥧 Distribuição da Base</h2>
+                <ResponsiveContainer width="100%" height={190}>
                   <PieChart>
-                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
+                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70}
+                      label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
                       {pieData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
                     </Pie>
                     <Tooltip />
@@ -153,46 +287,96 @@ export default function DashboardCoordenadorGeralPage() {
               </div>
             )}
 
-            {/* Ranking Coordenadores */}
-            {data.por_coordenador.length > 0 && (
+            {/* Por Região */}
+            {data.por_regiao.length > 0 && (
               <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-700 mb-3">📋 Ranking Coordenadores</h2>
-                <div className="space-y-2">
-                  {data.por_coordenador.map((c, i) => (
-                    <div key={c.coordenador_id ?? i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                      <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? "bg-yellow-400 text-yellow-900" : "bg-gray-200 text-gray-600"}`}>{i + 1}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-800 truncate">{c.coordenador_nome || "—"}</p>
-                        {c.regiao_nome && <p className="text-xs text-gray-400">📍 {c.regiao_nome}</p>}
-                        <div className="flex gap-2 text-xs text-gray-500 mt-0.5">
-                          <span>👥 {c.lideres}</span>
-                          <span>🟡 {c.simpatizantes}</span>
-                          <span>🟢 {c.fechados}</span>
-                        </div>
-                      </div>
-                      <span className="text-xl font-bold text-teal-600">{c.total}</span>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-semibold text-gray-700">📍 Por Região</h2>
+                  <button onClick={() => navigate("/mapa")} className="text-xs font-medium" style={{ color: primary }}>
+                    Ver mapa →
+                  </button>
                 </div>
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart data={data.por_regiao.map(r => ({ name: r.regiao_nome || "Sem região", total: r.total, fechados: r.fechados }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip />
+                    <Bar dataKey="total" name="Total" fill={primary} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="fechados" name="Fechados" fill="#10B981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+                {data.por_regiao.filter(r => r.prioridade !== "normal").map((r, i) => {
+                  const cfg = prioridadeConfig[r.prioridade || "normal"];
+                  return (
+                    <div key={i}
+                      className={`flex items-center justify-between mt-2 px-3 py-2 ${cfg.bg} rounded-lg cursor-pointer`}
+                      onClick={() => r.regiao_id && navigate(`/regioes/${r.regiao_id}`)}>
+                      <span className={`text-xs font-medium ${cfg.color}`}>{r.regiao_nome} — {cfg.label}</span>
+                      <span className={`text-xs font-bold ${cfg.color}`}>{r.total} contatos</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
             {/* Ranking Líderes */}
             {data.ranking_lideres.length > 0 && (
               <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-700 mb-3">🏆 Top Líderes</h2>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-semibold text-gray-700">🏆 Ranking de Líderes</h2>
+                  <button onClick={() => navigate("/usuarios")} className="text-xs font-medium" style={{ color: primary }}>
+                    Ver equipe →
+                  </button>
+                </div>
                 <div className="space-y-2">
                   {data.ranking_lideres.slice(0, 5).map((l, i) => (
                     <div key={l.lider_id ?? i} className="flex items-center gap-3">
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? "bg-yellow-400 text-yellow-900" : "bg-gray-100 text-gray-600"}`}>{i + 1}</span>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-800">{l.lider_nome || "—"}</p>
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${i === 0 ? "bg-yellow-400 text-yellow-900" : i === 1 ? "bg-gray-300 text-gray-700" : i === 2 ? "bg-orange-300 text-orange-900" : "bg-gray-100 text-gray-600"}`}>
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{l.lider_nome || "Sem nome"}</p>
                         <div className="flex gap-2 text-xs text-gray-500">
                           <span>🟡 {l.simpatizantes}</span>
                           <span>🟢 {l.fechados}</span>
                         </div>
                       </div>
-                      <span className="text-lg font-bold text-teal-600">{l.total}</span>
+                      <span className="text-lg font-bold flex-shrink-0" style={{ color: primary }}>{l.total}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Por Coordenador */}
+            {data.por_coordenador.length > 0 && (
+              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-semibold text-gray-700">📋 Por Coordenador</h2>
+                  <button onClick={() => navigate("/usuarios")} className="text-xs font-medium" style={{ color: primary }}>
+                    Ver todos →
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {data.por_coordenador.map((c, i) => (
+                    <div key={c.coordenador_id ?? i} className="border border-gray-100 rounded-xl p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-800 truncate">{c.coordenador_nome || "Sem coordenador"}</p>
+                          {c.regiao_nome && <p className="text-xs text-gray-400">📍 {c.regiao_nome}</p>}
+                        </div>
+                        <span className="text-2xl font-bold flex-shrink-0 ml-2" style={{ color: primary }}>{c.total}</span>
+                      </div>
+                      <div className="flex gap-3 mt-2 text-xs text-gray-500">
+                        <span>👥 {c.lideres} líderes</span>
+                        <span>🟡 {c.simpatizantes}</span>
+                        <span>🟢 {c.fechados}</span>
+                      </div>
+                      <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full"
+                          style={{ width: `${data.total_contatos > 0 ? (c.total / data.total_contatos) * 100 : 0}%`, backgroundColor: primary }} />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -204,21 +388,37 @@ export default function DashboardCoordenadorGeralPage() {
               <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-semibold text-gray-700">📅 Próximos Eventos</h2>
-                  <button onClick={() => navigate("/agenda")} className="text-xs text-teal-600">Ver →</button>
+                  <button onClick={() => navigate("/agenda")} className="text-xs font-medium" style={{ color: primary }}>
+                    Ver agenda →
+                  </button>
                 </div>
                 <div className="space-y-2">
                   {data.proximos_eventos.map((e) => (
-                    <div key={e.id} className="flex gap-3 items-start p-3 bg-teal-50 rounded-xl">
-                      <div className="bg-teal-100 rounded-lg p-1.5 text-center min-w-[40px]">
-                        <p className="text-xs text-teal-700 font-bold">{new Date(e.data + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</p>
+                    <div key={e.id} className="flex gap-3 items-start p-3 rounded-xl"
+                      style={{ backgroundColor: primary + "12" }}>
+                      <div className="rounded-lg p-2 text-center min-w-[44px] flex-shrink-0"
+                        style={{ backgroundColor: primary + "22" }}>
+                        <p className="text-xs font-bold" style={{ color: primary }}>
+                          {new Date(e.data + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                        </p>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">{e.titulo}</p>
-                        <p className="text-xs text-gray-500">{e.hora && e.hora.slice(0,5)} {e.local && `• ${e.local}`}</p>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{e.titulo}</p>
+                        <p className="text-xs text-gray-500">
+                          {tipoEventoLabel[e.tipo_evento]} {e.hora && `• ${e.hora.slice(0, 5)}`} {e.local && `• ${e.local}`}
+                        </p>
                       </div>
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {data.total_contatos === 0 && (
+              <div className="text-center py-8 text-gray-400">
+                <p className="text-5xl mb-3">📊</p>
+                <p className="text-sm font-medium">Nenhum dado ainda</p>
+                <p className="text-xs mt-1">Cadastre contatos e estruture a equipe para ver as estatísticas</p>
               </div>
             )}
           </>

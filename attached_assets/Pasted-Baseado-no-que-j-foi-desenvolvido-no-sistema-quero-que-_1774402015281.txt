@@ -1,0 +1,156 @@
+Baseado no que já foi desenvolvido no sistema, quero que você ajuste e melhore a experiência do perfil VEREADOR com foco em simplicidade, clareza e tomada de decisão rápida.
+
+OBJETIVO:
+O vereador é uma pessoa ocupada.
+Ele não quer mexer muito, não quer ficar procurando informação e não quer excesso de telas.
+
+Ele quer:
+- bater o olho e entender tudo
+- saber onde agir
+- saber o que está dando certo e o que está ruim
+- tomar decisão rápida
+
+A aplicação para o vereador deve ser:
+- simples
+- direta
+- visual
+- sem poluição
+- com foco em ação
+
+==================================================
+COMO DEVE SER A TELA DO VEREADOR
+==================================================
+
+Criar uma tela principal (dashboard) única e forte.
+
+Essa tela deve responder rapidamente:
+- como está a campanha?
+- onde estamos bem?
+- onde estamos fracos?
+- o que precisa de atenção agora?
+
+--------------------------------------------------
+1. TOPO (RESUMO RÁPIDO)
+--------------------------------------------------
+
+Mostrar poucos indicadores, bem claros:
+
+- total de pessoas cadastradas
+- crescimento recente (se possível)
+- quantidade de líderes ativos
+- quantidade de coordenadores
+- número de eventos próximos
+
+Tudo em formato de cards grandes, fáceis de ler.
+
+--------------------------------------------------
+2. ALERTAS IMPORTANTES
+--------------------------------------------------
+
+Mostrar automaticamente:
+
+- regiões com baixa atividade
+- regiões sem liderança forte
+- regiões que precisam de atenção
+
+Isso deve aparecer destacado, sem o vereador precisar procurar.
+
+--------------------------------------------------
+3. MAPA SIMPLES DA CIDADE
+--------------------------------------------------
+
+Mostrar o mapa com cores simples:
+
+- regiões boas (verde)
+- regiões médias (amarelo)
+- regiões fracas (vermelho)
+
+Permitir:
+- clicar na região e ver um resumo rápido
+- marcar região como PRIORIDADE
+
+Sem excesso de informação.
+
+--------------------------------------------------
+4. REGIÕES PRIORITÁRIAS
+--------------------------------------------------
+
+Mostrar uma lista simples:
+
+- regiões que o vereador marcou como prioridade
+- status de cada uma
+
+--------------------------------------------------
+5. EVENTOS
+--------------------------------------------------
+
+Mostrar:
+
+- próximos eventos
+- data + local
+- responsável
+
+Sem necessidade de edição aqui, apenas visualização rápida.
+
+--------------------------------------------------
+6. VISÃO DA EQUIPE
+--------------------------------------------------
+
+Mostrar resumo simples:
+
+- total de coordenadores
+- total de líderes
+- líderes mais ativos (se possível)
+
+Nada detalhado demais.
+
+--------------------------------------------------
+REGRAS IMPORTANTES
+==================================================
+
+- NÃO criar telas complexas para o vereador
+- NÃO mostrar dados desnecessários
+- NÃO exigir muitos cliques
+- NÃO poluir a interface
+
+FAZER:
+- mostrar o essencial
+- destacar o que importa
+- facilitar decisão
+- usar visual limpo e moderno
+- usar cores para ajudar leitura
+- organizar bem os blocos
+
+==================================================
+EXPERIÊNCIA
+==================================================
+
+O vereador deve conseguir:
+
+- abrir o app
+- olhar 30 segundos
+- entender tudo
+- saber o que fazer
+
+Se precisar pensar muito, está errado.
+
+==================================================
+IMPLEMENTAÇÃO
+==================================================
+
+- aproveite o que já foi feito
+- reorganize o dashboard atual se necessário
+- simplifique componentes
+- melhore o layout
+- mantenha responsivo (principalmente mobile)
+- use boas práticas sem complicar
+
+==================================================
+OBJETIVO FINAL
+==================================================
+
+Criar uma experiência onde o vereador use o sistema todo dia,
+de forma natural, rápida e útil.
+
+Ele deve sentir:
+"isso aqui me ajuda de verdade"

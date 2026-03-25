@@ -204,11 +204,18 @@ router.get("/dashboard/coordenador-geral", async (req, res): Promise<void> => {
     total_fechados: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'fechado')::int`,
   }).from(contatosTable);
 
+  const umaSemanaAtras = new Date();
+  umaSemanaAtras.setDate(umaSemanaAtras.getDate() - 7);
+  const [semanaAntPass] = await db.select({ total: sql<number>`count(*)::int` })
+    .from(contatosTable).where(gte(contatosTable.created_at, umaSemanaAtras));
+
   const [coordCount] = await db.select({ total: sql<number>`count(*)::int` })
     .from(usuariosTable).where(eq(usuariosTable.tipo, "coordenador_regional"));
 
   const [liderCount] = await db.select({ total: sql<number>`count(*)::int` })
     .from(usuariosTable).where(eq(usuariosTable.tipo, "lider"));
+
+  const [regiaoCount] = await db.select({ total: sql<number>`count(*)::int` }).from(regioesTable);
 
   const porCoordenador = await db.select({
     coordenador_id: contatosTable.coordenador_id,
@@ -256,16 +263,37 @@ router.get("/dashboard/coordenador-geral", async (req, res): Promise<void> => {
 
   const proximos_eventos = await getProximosEventos(usuario.id, usuario.tipo, null);
 
+  const evolucao_semanal = await db.select({
+    semana: sql<string>`date_trunc('week', ${contatosTable.created_at})::date::text`,
+    total: sql<number>`count(*)::int`,
+    simpatizantes: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'simpatizante')::int`,
+    fechados: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'fechado')::int`,
+  }).from(contatosTable)
+    .where(gte(contatosTable.created_at, new Date(Date.now() - 8 * 7 * 24 * 60 * 60 * 1000)))
+    .groupBy(sql`date_trunc('week', ${contatosTable.created_at})`)
+    .orderBy(sql`date_trunc('week', ${contatosTable.created_at})`);
+
+  const alertas: string[] = [];
+  const regioesFracas = porRegiao.filter(r => r.total > 0 && r.fechados / r.total < 0.1);
+  if (regioesFracas.length > 0) alertas.push(`${regioesFracas.length} região(ões) com poucos fechados`);
+  const regioesPrioritarias = porRegiao.filter(r => r.prioridade === "prioritaria");
+  if (regioesPrioritarias.length > 0) alertas.push(`${regioesPrioritarias.length} região(ões) prioritária(s) ativa(s)`);
+  if (proximos_eventos.length > 0) alertas.push(`${proximos_eventos.length} evento(s) próximo(s)`);
+
   res.json({
     total_contatos: totals?.total_contatos || 0,
     total_simpatizantes: totals?.total_simpatizantes || 0,
     total_fechados: totals?.total_fechados || 0,
     total_coordenadores: coordCount?.total || 0,
     total_lideres: liderCount?.total || 0,
+    total_regioes: regiaoCount?.total || 0,
+    crescimento_semana: semanaAntPass?.total || 0,
+    evolucao_semanal,
     por_coordenador: porCoordenador,
     por_regiao: porRegiao,
     ranking_lideres: rankingLideres,
     proximos_eventos,
+    alertas,
   });
 });
 

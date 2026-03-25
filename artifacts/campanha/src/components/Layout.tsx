@@ -23,10 +23,9 @@ const navItems: Record<TipoUsuario, { href: string; label: string; icon: string 
     { href: "/contatos", label: "Pessoas", icon: "👥" },
     { href: "/usuarios", label: "Equipe", icon: "🧑‍🤝‍🧑" },
     { href: "/agenda", label: "Agenda", icon: "📅" },
-    { href: "/configuracao", label: "Config", icon: "⚙️" },
   ],
   coordenador_geral: [
-    { href: "/dashboard/vereador", label: "Dashboard", icon: "📊" },
+    { href: "/dashboard/coordenador-geral", label: "Dashboard", icon: "📊" },
     { href: "/mapa", label: "Mapa", icon: "🗺️" },
     { href: "/contatos", label: "Pessoas", icon: "👥" },
     { href: "/usuarios", label: "Equipe", icon: "🧑‍🤝‍🧑" },

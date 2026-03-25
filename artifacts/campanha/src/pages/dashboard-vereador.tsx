@@ -22,6 +22,15 @@ interface Evento {
   hora: string | null;
   local: string | null;
   tipo_evento: string;
+  criado_por_nome: string | null;
+}
+
+interface StatsLider {
+  lider_id: number | null;
+  lider_nome: string | null;
+  total: number;
+  simpatizantes: number;
+  fechados: number;
 }
 
 interface DashboardVereador {
@@ -34,13 +43,22 @@ interface DashboardVereador {
   crescimento_semana: number;
   por_regiao: StatsRegiao[];
   proximos_eventos: Evento[];
+  ranking_lideres: StatsLider[];
   alertas: string[];
 }
 
-const prioridadeConfig: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  normal:     { label: "Normal",     color: "text-gray-600",  bg: "bg-gray-50",   border: "border-gray-200" },
-  atencao:    { label: "Atenção",    color: "text-yellow-700", bg: "bg-yellow-50", border: "border-yellow-200" },
-  prioritaria:{ label: "Prioritária",color: "text-red-700",   bg: "bg-red-50",    border: "border-red-200" },
+function getForca(regiao: StatsRegiao): "forte" | "media" | "fraca" {
+  if (regiao.total === 0) return "fraca";
+  const pct = (regiao.fechados / regiao.total) * 100;
+  if (pct >= 20) return "forte";
+  if (pct >= 10) return "media";
+  return "fraca";
+}
+
+const forcaConfig = {
+  forte: { label: "Forte",   bg: "bg-green-50",  border: "border-green-200", dot: "bg-green-500",  text: "text-green-700",  bar: "#22c55e" },
+  media: { label: "Média",   bg: "bg-yellow-50", border: "border-yellow-200",dot: "bg-yellow-400", text: "text-yellow-700", bar: "#eab308" },
+  fraca: { label: "Fraca",   bg: "bg-red-50",    border: "border-red-200",   dot: "bg-red-500",    text: "text-red-700",    bar: "#ef4444" },
 };
 
 export default function DashboardVereadorPage() {
@@ -74,175 +92,186 @@ export default function DashboardVereadorPage() {
   const primary = config.cor_primaria || "#1d4ed8";
   const secondary = config.cor_secundaria || "#1e40af";
 
-  const conversao = data && data.total_contatos > 0
-    ? Math.round((data.total_fechados / data.total_contatos) * 100)
-    : 0;
+  const regioesOrdenadas = data ? [...data.por_regiao].sort((a, b) => {
+    const ordem = { fraca: 0, media: 1, forte: 2 };
+    return ordem[getForca(a)] - ordem[getForca(b)];
+  }) : [];
 
   const regioesPrioritarias = data?.por_regiao.filter(r => r.prioridade === "prioritaria" || r.prioridade === "atencao") || [];
-  const regioesNormais = data?.por_regiao.filter(r => !r.prioridade || r.prioridade === "normal") || [];
+  const regioesFracas = regioesOrdenadas.filter(r => getForca(r) === "fraca" && r.prioridade !== "prioritaria");
+  const alertasVisuais = [
+    ...data?.alertas || [],
+    ...regioesFracas.length > 0 ? [`${regioesFracas.length} região(ões) com baixa atividade`] : [],
+  ].filter((v, i, arr) => arr.indexOf(v) === i);
 
   return (
     <Layout>
       <div className="p-4 max-w-xl mx-auto">
 
-        {/* Candidate Banner */}
-        <div className="rounded-2xl p-5 mb-4 text-white shadow-lg relative overflow-hidden"
+        {/* ── TOPO: Candidato ─────────────────────────────────────── */}
+        <div className="rounded-2xl p-4 mb-4 text-white shadow-lg relative overflow-hidden"
           style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {config.foto_principal ? (
               <img src={config.foto_principal} alt={config.nome_candidato}
-                className="w-16 h-16 rounded-full object-cover border-2 border-white/30 flex-shrink-0" />
+                className="w-14 h-14 rounded-full object-cover border-2 border-white/30 flex-shrink-0" />
             ) : (
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-3xl">🏛️</span>
+              <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-2xl">🏛️</span>
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-xl font-black truncate">{config.nome_candidato}</p>
-              {config.numero && (
-                <span className="inline-block bg-white/25 text-white text-xs font-bold px-2 py-0.5 rounded-full mt-0.5">
-                  Nº {config.numero}
-                </span>
-              )}
-              {config.slogan && (
-                <p className="text-xs text-white/70 italic mt-1 truncate">"{config.slogan}"</p>
-              )}
+              <p className="text-lg font-black truncate leading-tight">{config.nome_candidato}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                {config.numero && (
+                  <span className="bg-white/25 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    Nº {config.numero}
+                  </span>
+                )}
+                {config.slogan && (
+                  <p className="text-xs text-white/70 italic truncate">"{config.slogan}"</p>
+                )}
+              </div>
             </div>
             {config.musica_url && (
               <button onClick={toggleMusic}
-                className="flex-shrink-0 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all">
-                <span className="text-base">{musicPlaying ? "⏸️" : "🎵"}</span>
+                className="flex-shrink-0 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">
+                <span>{musicPlaying ? "⏸️" : "🎵"}</span>
               </button>
             )}
           </div>
         </div>
 
         {loading && (
-          <div className="text-center py-16">
+          <div className="text-center py-20">
             <div className="inline-block w-10 h-10 border-4 border-t-transparent rounded-full animate-spin"
               style={{ borderColor: primary, borderTopColor: "transparent" }} />
+            <p className="text-sm text-gray-400 mt-3">Carregando...</p>
           </div>
         )}
 
         {data && (
           <>
-            {/* Alertas */}
-            {data.alertas.length > 0 && (
-              <div className="mb-4 space-y-2">
-                {data.alertas.map((a, i) => (
-                  <div key={i} className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-sm text-amber-800">
-                    <span className="text-base">⚠️</span>
-                    <span>{a}</span>
-                  </div>
-                ))}
+            {/* ── ALERTAS IMPORTANTES ─────────────────────────────── */}
+            {alertasVisuais.length > 0 && (
+              <div className="mb-4 rounded-2xl overflow-hidden border border-orange-200 shadow-sm">
+                <div className="bg-orange-500 px-4 py-2.5 flex items-center gap-2">
+                  <span className="text-base">🔔</span>
+                  <span className="text-white text-sm font-bold">Requer sua atenção</span>
+                </div>
+                <div className="bg-orange-50 divide-y divide-orange-100">
+                  {alertasVisuais.map((a, i) => (
+                    <div key={i} className="flex items-center gap-3 px-4 py-2.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" />
+                      <span className="text-sm text-orange-900">{a}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Hero: Base Total */}
+            {/* ── NÚMERO PRINCIPAL ────────────────────────────────── */}
             <div className="rounded-2xl p-5 mb-4 text-white shadow-lg"
-              style={{ background: `linear-gradient(135deg, ${primary}cc, ${secondary})` }}>
-              <p className="text-sm text-white/70 mb-1">Base Total da Campanha</p>
-              <div className="flex items-end gap-4">
-                <p className="text-6xl font-black leading-none">{data.total_contatos}</p>
-                <div className="mb-1">
-                  {data.crescimento_semana > 0 && (
-                    <span className="bg-green-400/30 text-white text-xs px-2 py-0.5 rounded-full font-medium">
-                      +{data.crescimento_semana} esta semana
+              style={{ background: `linear-gradient(135deg, ${primary}dd, ${secondary})` }}>
+              <p className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1">
+                Total de pessoas na base
+              </p>
+              <div className="flex items-end justify-between">
+                <p className="text-7xl font-black leading-none">{data.total_contatos}</p>
+                {data.crescimento_semana > 0 && (
+                  <div className="mb-2 text-right">
+                    <span className="bg-green-400/30 border border-green-400/40 text-white text-xs font-bold px-3 py-1.5 rounded-full block">
+                      +{data.crescimento_semana} essa semana
                     </span>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-5 mt-3 text-sm">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-300" />
-                  <span>{data.total_simpatizantes} simpatizantes</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-300" />
-                  <span>{data.total_fechados} fechados</span>
-                </div>
-              </div>
-              {data.total_contatos > 0 && (
-                <div className="mt-3">
-                  <div className="flex justify-between text-xs text-white/60 mb-1">
-                    <span>Conversão para voto fechado</span>
-                    <span className="font-bold text-white">{conversao}%</span>
                   </div>
-                  <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                    <div className="h-full bg-green-400 rounded-full" style={{ width: `${conversao}%` }} />
-                  </div>
+                )}
+              </div>
+              <div className="flex gap-4 mt-4 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-yellow-300" />
+                  <span className="text-white/80">{data.total_simpatizantes} simpatizantes</span>
                 </div>
-              )}
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center">
-                <p className="text-2xl font-bold" style={{ color: primary }}>{data.total_coordenadores}</p>
-                <p className="text-xs text-gray-500 mt-0.5">Coordenadores</p>
-              </div>
-              <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center">
-                <p className="text-2xl font-bold text-purple-600">{data.total_lideres}</p>
-                <p className="text-xs text-gray-500 mt-0.5">Líderes</p>
-              </div>
-              <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center">
-                <p className="text-2xl font-bold text-teal-600">{data.total_regioes}</p>
-                <p className="text-xs text-gray-500 mt-0.5">Regiões</p>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-green-300" />
+                  <span className="text-white/80">{data.total_fechados} votos fechados</span>
+                </div>
               </div>
             </div>
 
-            {/* Regiões que precisam de atenção */}
-            {regioesPrioritarias.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-700 mb-3">🎯 Regiões que precisam de atenção</h2>
+            {/* ── GRID DE MÉTRICAS ────────────────────────────────── */}
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center"
+                onClick={() => navigate("/usuarios")} style={{ cursor: "pointer" }}>
+                <p className="text-3xl font-black" style={{ color: primary }}>{data.total_coordenadores}</p>
+                <p className="text-xs font-medium text-gray-500 mt-1">Coord.</p>
+              </div>
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center"
+                onClick={() => navigate("/usuarios")} style={{ cursor: "pointer" }}>
+                <p className="text-3xl font-black text-purple-600">{data.total_lideres}</p>
+                <p className="text-xs font-medium text-gray-500 mt-1">Líderes</p>
+              </div>
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center"
+                onClick={() => navigate("/agenda")} style={{ cursor: "pointer" }}>
+                <p className="text-3xl font-black text-teal-600">{data.proximos_eventos.length}</p>
+                <p className="text-xs font-medium text-gray-500 mt-1">Eventos</p>
+              </div>
+            </div>
+
+            {/* ── FORÇA POR REGIÃO (SEMÁFORO) ─────────────────────── */}
+            {regioesOrdenadas.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-base font-bold text-gray-800">🗺️ Força por Região</h2>
+                  <button onClick={() => navigate("/mapa")}
+                    className="text-xs font-semibold px-3 py-1 rounded-full border"
+                    style={{ color: primary, borderColor: primary + "44" }}>
+                    Ver mapa
+                  </button>
+                </div>
+
+                {/* Legenda */}
+                <div className="flex gap-3 mb-3">
+                  {(["forte", "media", "fraca"] as const).map(f => (
+                    <div key={f} className="flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full ${forcaConfig[f].dot}`} />
+                      <span className="text-xs text-gray-500">{forcaConfig[f].label}</span>
+                    </div>
+                  ))}
+                </div>
+
                 <div className="space-y-2">
-                  {regioesPrioritarias.map((r) => {
-                    const cfg = prioridadeConfig[r.prioridade || "normal"];
+                  {regioesOrdenadas.map((r) => {
+                    const forca = getForca(r);
+                    const cfg = forcaConfig[forca];
                     const pct = r.total > 0 ? Math.round((r.fechados / r.total) * 100) : 0;
+                    const isPrioritaria = r.prioridade === "prioritaria";
+                    const isAtencao = r.prioridade === "atencao";
+
                     return (
                       <div key={r.regiao_id}
-                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer ${cfg.bg} ${cfg.border}`}
+                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer active:scale-[0.98] transition-transform ${cfg.bg} ${cfg.border}`}
                         onClick={() => r.regiao_id && navigate(`/regioes/${r.regiao_id}`)}>
-                        <div>
+                        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${cfg.dot}`} />
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-gray-800">{r.regiao_nome || "—"}</p>
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.color} ${cfg.bg}`}>
-                              {cfg.label}
-                            </span>
+                            <p className="text-sm font-semibold text-gray-800 truncate">{r.regiao_nome || "Sem nome"}</p>
+                            {isPrioritaria && (
+                              <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-md font-medium flex-shrink-0">🎯 Prioridade</span>
+                            )}
+                            {isAtencao && !isPrioritaria && (
+                              <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-md font-medium flex-shrink-0">⚠️ Atenção</span>
+                            )}
                           </div>
-                          <p className="text-xs text-gray-500 mt-0.5">{r.total} contatos • {pct}% fechados</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="flex-1 h-1.5 bg-white/60 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: cfg.bar }} />
+                            </div>
+                            <span className={`text-xs font-bold flex-shrink-0 ${cfg.text}`}>{pct}%</span>
+                          </div>
                         </div>
-                        <span className="text-gray-400 text-sm">→</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Panorama por Região */}
-            {regioesNormais.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-gray-700">📍 Panorama por Região</h2>
-                  <button onClick={() => navigate("/mapa")} className="text-xs font-medium" style={{ color: primary }}>
-                    Ver mapa →
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {regioesNormais.map((r) => {
-                    const pct = r.total > 0 ? (r.fechados / r.total) * 100 : 0;
-                    return (
-                      <div key={r.regiao_id}
-                        className="cursor-pointer"
-                        onClick={() => r.regiao_id && navigate(`/regioes/${r.regiao_id}`)}>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="font-medium text-gray-700">{r.regiao_nome || "Sem região"}</span>
-                          <span className="text-gray-500">{r.total} pessoas • {Math.round(pct)}% fechados</span>
-                        </div>
-                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-green-500 rounded-full"
-                            style={{ width: `${pct}%` }} />
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-lg font-black text-gray-700">{r.total}</p>
+                          <p className="text-xs text-gray-400">pessoas</p>
                         </div>
                       </div>
                     );
@@ -251,28 +280,24 @@ export default function DashboardVereadorPage() {
               </div>
             )}
 
-            {/* Próximos Eventos */}
-            {data.proximos_eventos.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-gray-700">📅 Próximos Eventos</h2>
-                  <button onClick={() => navigate("/agenda")} className="text-xs font-medium" style={{ color: primary }}>
-                    Ver agenda →
-                  </button>
-                </div>
+            {/* ── REGIÕES PRIORITÁRIAS ─────────────────────────────── */}
+            {regioesPrioritarias.length > 0 && (
+              <div className="mb-4 bg-red-50 border border-red-200 rounded-2xl p-4">
+                <h2 className="text-sm font-bold text-red-800 mb-3">🎯 Regiões Prioritárias</h2>
                 <div className="space-y-2">
-                  {data.proximos_eventos.slice(0, 3).map((e) => (
-                    <div key={e.id} className="flex gap-3 items-center p-3 rounded-xl"
-                      style={{ backgroundColor: primary + "10" }}>
-                      <div className="rounded-lg p-2 text-center min-w-[44px]"
-                        style={{ backgroundColor: primary + "20" }}>
-                        <p className="text-xs font-bold" style={{ color: primary }}>
-                          {new Date(e.data + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
-                        </p>
+                  {regioesPrioritarias.map((r) => (
+                    <div key={r.regiao_id}
+                      className="flex items-center justify-between bg-white rounded-xl px-3 py-2.5 cursor-pointer border border-red-100"
+                      onClick={() => r.regiao_id && navigate(`/regioes/${r.regiao_id}`)}>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{r.regiao_nome}</p>
+                        <p className="text-xs text-gray-500">{r.total} pessoas • {r.lideres} líderes</p>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">{e.titulo}</p>
-                        <p className="text-xs text-gray-500">{e.hora?.slice(0, 5)} {e.local && `• ${e.local}`}</p>
+                      <div className="text-right">
+                        <p className="text-xs font-bold text-red-600">
+                          {r.total > 0 ? Math.round((r.fechados / r.total) * 100) : 0}% fechados
+                        </p>
+                        <p className="text-xs text-gray-400">→ ver região</p>
                       </div>
                     </div>
                   ))}
@@ -280,24 +305,94 @@ export default function DashboardVereadorPage() {
               </div>
             )}
 
-            {/* Ações Rápidas */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <button onClick={() => navigate("/mapa")}
-                className="text-white rounded-2xl p-4 text-center font-semibold text-sm shadow active:scale-95 transition-transform"
-                style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
-                🗺️ Ver Mapa
-              </button>
-              <button onClick={() => navigate("/usuarios")}
-                className="bg-white border border-gray-200 text-gray-700 rounded-2xl p-4 text-center font-semibold text-sm shadow-sm active:scale-95 transition-transform">
-                🧑‍🤝‍🧑 Equipe
-              </button>
-            </div>
+            {/* ── PRÓXIMOS EVENTOS ─────────────────────────────────── */}
+            {data.proximos_eventos.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-base font-bold text-gray-800">📅 Próximos Eventos</h2>
+                  <button onClick={() => navigate("/agenda")}
+                    className="text-xs font-semibold px-3 py-1 rounded-full border"
+                    style={{ color: primary, borderColor: primary + "44" }}>
+                    Ver agenda
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {data.proximos_eventos.slice(0, 4).map((e) => {
+                    const dt = new Date(e.data + "T12:00:00");
+                    const hoje = new Date();
+                    const diffDias = Math.ceil((dt.getTime() - hoje.setHours(0,0,0,0)) / (1000*60*60*24));
+                    return (
+                      <div key={e.id} className="flex gap-3 items-center bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
+                        <div className="rounded-xl p-2.5 text-center flex-shrink-0 w-14"
+                          style={{ backgroundColor: primary + "15" }}>
+                          <p className="text-xs font-bold" style={{ color: primary }}>
+                            {dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                          </p>
+                          {diffDias <= 3 && (
+                            <p className="text-xs font-bold text-orange-500 mt-0.5">
+                              {diffDias === 0 ? "hoje" : diffDias === 1 ? "amanhã" : `em ${diffDias}d`}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-800 truncate">{e.titulo}</p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {e.hora?.slice(0, 5) && `${e.hora.slice(0, 5)} `}
+                            {e.local && `• ${e.local}`}
+                          </p>
+                          {e.criado_por_nome && (
+                            <p className="text-xs text-gray-400 mt-0.5">👤 {e.criado_por_nome}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
+            {/* ── EQUIPE EM DESTAQUE ───────────────────────────────── */}
+            {data.ranking_lideres.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-base font-bold text-gray-800">⭐ Líderes em Destaque</h2>
+                  <button onClick={() => navigate("/usuarios")}
+                    className="text-xs font-semibold px-3 py-1 rounded-full border"
+                    style={{ color: primary, borderColor: primary + "44" }}>
+                    Ver equipe
+                  </button>
+                </div>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  {data.ranking_lideres.slice(0, 3).map((l, i) => (
+                    <div key={l.lider_id ?? i}
+                      className={`flex items-center gap-3 px-4 py-3 ${i < 2 ? "border-b border-gray-50" : ""}`}>
+                      <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0
+                        ${i === 0 ? "bg-yellow-400 text-yellow-900" : i === 1 ? "bg-gray-200 text-gray-600" : "bg-orange-200 text-orange-800"}`}>
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 truncate">{l.lider_nome || "Sem nome"}</p>
+                        <div className="flex gap-2 text-xs text-gray-500">
+                          <span>🟡 {l.simpatizantes}</span>
+                          <span>🟢 {l.fechados} fechados</span>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-xl font-black" style={{ color: primary }}>{l.total}</p>
+                        <p className="text-xs text-gray-400">pessoas</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Estado vazio */}
             {data.total_contatos === 0 && (
-              <div className="text-center py-8 text-gray-400">
-                <p className="text-5xl mb-3">📊</p>
-                <p className="text-sm font-medium">Nenhum dado ainda</p>
-                <p className="text-xs mt-1">Peça ao seu coordenador geral para cadastrar os primeiros contatos</p>
+              <div className="text-center py-12 text-gray-400">
+                <p className="text-6xl mb-4">📋</p>
+                <p className="text-base font-semibold text-gray-600">Campanha ainda vazia</p>
+                <p className="text-sm mt-1">Peça ao coordenador geral para começar a cadastrar os dados.</p>
               </div>
             )}
           </>

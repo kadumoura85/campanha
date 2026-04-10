@@ -1,9 +1,17 @@
 import { Router, type IRouter } from "express";
 import { eq, sql, and } from "drizzle-orm";
 import { db, eventosTable } from "@workspace/db";
+import { CreateEventoBody, UpdateEventoBody } from "@workspace/api-zod";
 import { getUsuarioFromRequest } from "./auth";
 
 const router: IRouter = Router();
+type TipoEvento =
+  | "reuniao"
+  | "caminhada"
+  | "visita"
+  | "comicio"
+  | "acao_de_rua"
+  | "evento_interno";
 
 router.get("/eventos", async (req, res): Promise<void> => {
   const usuario = await getUsuarioFromRequest(req);
@@ -36,15 +44,15 @@ router.get("/eventos", async (req, res): Promise<void> => {
 
   const conditions = [];
   if (regiao_id) conditions.push(eq(eventosTable.regiao_id, Number(regiao_id)));
-  if (tipo_evento) conditions.push(eq(eventosTable.tipo_evento, tipo_evento as string));
+  if (tipo_evento) conditions.push(eq(eventosTable.tipo_evento, tipo_evento as TipoEvento));
 
   if (usuario.tipo === "lider") {
     conditions.push(
-      sql`(${eventosTable.visibilidade} = 'geral' or ${eventosTable.lider_id} = ${usuario.id} or (${eventosTable.visibilidade} = 'regional' and ${eventosTable.coordenador_regional_id} = ${usuario.coordenador_id}))`
+      sql`(${eventosTable.visibilidade} = 'geral' or ${eventosTable.lider_id} = ${usuario.id} or (${eventosTable.visibilidade} = 'regional' and ${eventosTable.coordenador_regional_id} = ${usuario.coordenador_id}))`,
     );
   } else if (usuario.tipo === "coordenador_regional") {
     conditions.push(
-      sql`(${eventosTable.visibilidade} = 'geral' or ${eventosTable.coordenador_regional_id} = ${usuario.id} or ${eventosTable.criado_por} = ${usuario.id})`
+      sql`(${eventosTable.visibilidade} = 'geral' or ${eventosTable.coordenador_regional_id} = ${usuario.id} or ${eventosTable.criado_por} = ${usuario.id})`,
     );
   }
 
@@ -60,11 +68,12 @@ router.post("/eventos", async (req, res): Promise<void> => {
   const usuario = await getUsuarioFromRequest(req);
   if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
 
-  const { titulo, descricao, data, hora, local, tipo_evento, regiao_id, visibilidade, coordenador_regional_id, lider_id } = req.body;
-  if (!titulo || !data || !tipo_evento || !visibilidade) {
-    res.status(400).json({ error: "Campos obrigatórios: titulo, data, tipo_evento, visibilidade" }); return;
+  const parsed = CreateEventoBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message }); return;
   }
 
+  const { titulo, descricao, data, hora, local, tipo_evento, regiao_id, visibilidade, coordenador_regional_id, lider_id } = parsed.data;
   const [evento] = await db.insert(eventosTable).values({
     titulo,
     descricao: descricao || null,
@@ -87,10 +96,14 @@ router.patch("/eventos/:id", async (req, res): Promise<void> => {
   if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
 
   const id = Number(req.params["id"]);
+  const parsed = UpdateEventoBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message }); return;
+  }
+
   const updates: Record<string, unknown> = {};
-  const allowed = ["titulo", "descricao", "data", "hora", "local", "tipo_evento", "regiao_id", "visibilidade"];
-  for (const key of allowed) {
-    if (req.body[key] !== undefined) updates[key] = req.body[key];
+  for (const [key, value] of Object.entries(parsed.data)) {
+    if (value !== undefined) updates[key] = value;
   }
 
   const [updated] = await db.update(eventosTable).set(updates).where(eq(eventosTable.id, id)).returning();

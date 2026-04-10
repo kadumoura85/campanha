@@ -1,13 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
+import CampanhaAvatar from "@/components/CampanhaAvatar";
 import Layout from "@/components/Layout";
 import { apiGet } from "@/lib/api";
 import { useCampanha } from "@/contexts/CampanhaContext";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
-  AreaChart, Area,
-} from "recharts";
+import { getCampaignDisplayName } from "@/lib/campanha";
+import { getPrioridadeConfig } from "@/lib/prioridade";
 
 interface StatsCoordenador {
   coordenador_id: number | null;
@@ -33,6 +31,7 @@ interface StatsRegiao {
 interface StatsLider {
   lider_id: number | null;
   lider_nome: string | null;
+  coordenador_nome: string | null;
   total: number;
   simpatizantes: number;
   fechados: number;
@@ -70,27 +69,74 @@ interface DashboardCoordenadorGeral {
   alertas: string[];
 }
 
-const prioridadeConfig: Record<string, { label: string; color: string; bg: string }> = {
-  normal:     { label: "Normal",      color: "text-gray-600",   bg: "bg-gray-50" },
-  atencao:    { label: "Atenção",     color: "text-yellow-700", bg: "bg-yellow-50" },
-  prioritaria:{ label: "Prioritária", color: "text-red-700",    bg: "bg-red-50" },
-};
+function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm ${className}`}>{children}</div>;
+}
 
-const tipoEventoLabel: Record<string, string> = {
-  reuniao: "📋 Reunião",
-  visita: "🚶 Visita",
-  caminhada: "👟 Caminhada",
-  comicio: "📣 Comício",
-  outro: "📌 Outro",
-};
+function KpiCard({
+  label,
+  value,
+  hint,
+  color,
+}: {
+  label: string;
+  value: number | string;
+  hint: string;
+  color: string;
+}) {
+  const effectiveHint = label === "Base total" ? "Soma de contatos, simpatizantes e fechados" : hint;
+
+  return (
+    <Card className="p-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">{label}</p>
+      <p className={`text-3xl font-black mt-2 ${color}`}>{value}</p>
+      <p className="text-xs text-gray-500 mt-1">{effectiveHint}</p>
+    </Card>
+  );
+}
+
+function ActionCard({
+  title,
+  hint,
+  onClick,
+  primary = false,
+}: {
+  title: string;
+  hint: string;
+  onClick: () => void;
+  primary?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`text-left rounded-2xl border p-4 transition-colors ${
+        primary ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-gray-200 text-gray-800 hover:border-gray-300"
+      }`}
+    >
+      <p className="text-sm font-bold">{title}</p>
+      <p className={`text-xs mt-1 ${primary ? "text-white/80" : "text-gray-500"}`}>{hint}</p>
+      <p className={`text-xs font-semibold mt-3 ${primary ? "text-white" : "text-blue-700"}`}>Abrir</p>
+    </button>
+  );
+}
+
+function percent(part: number, total: number) {
+  if (!total) return 0;
+  return (part / total) * 100;
+}
+
+function formatPercent(value: number) {
+  return `${Math.round(value)}%`;
+}
 
 export default function DashboardCoordenadorGeralPage() {
   const [data, setData] = useState<DashboardCoordenadorGeral | null>(null);
   const [loading, setLoading] = useState(true);
   const [, navigate] = useLocation();
   const { config } = useCampanha();
-  const [musicPlaying, setMusicPlaying] = useState(false);
-  const [audioEl, setAudioEl] = useState<HTMLAudioElement | null>(null);
+  const campaignName = getCampaignDisplayName(config.nome_candidato);
+  const primary = config.cor_primaria || "#1d4ed8";
+  const secondary = config.cor_secundaria || "#1e40af";
 
   useEffect(() => {
     apiGet<DashboardCoordenadorGeral>("/api/dashboard/coordenador-geral")
@@ -98,328 +144,432 @@ export default function DashboardCoordenadorGeralPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const toggleMusic = () => {
-    if (!config.musica_url) return;
-    if (!audioEl) {
-      const audio = new Audio(config.musica_url);
-      audio.loop = true;
-      audio.play();
-      setAudioEl(audio);
-      setMusicPlaying(true);
-    } else {
-      if (musicPlaying) { audioEl.pause(); setMusicPlaying(false); }
-      else { audioEl.play(); setMusicPlaying(true); }
+  const analytics = useMemo(() => {
+    if (!data) return null;
+
+    const taxaFechamento = percent(data.total_fechados, data.total_contatos);
+    const taxaSimpatia = percent(data.total_simpatizantes, data.total_contatos);
+    const mediaPorCoordenador = data.total_coordenadores > 0 ? Math.round(data.total_contatos / data.total_coordenadores) : 0;
+    const mediaPorLider = data.total_lideres > 0 ? Math.round(data.total_contatos / data.total_lideres) : 0;
+
+    const coordenadores = data.por_coordenador
+      .filter((item) => item.total > 0)
+      .map((item) => {
+        const conversao = percent(item.fechados, item.total);
+        const mediaPorLiderItem = item.lideres > 0 ? Math.round(item.total / item.lideres) : item.total;
+        return {
+          ...item,
+          conversao,
+          mediaPorLider: mediaPorLiderItem,
+        };
+      });
+
+    const coordenadoresPoucaEquipe = coordenadores.filter((item) => item.lideres <= 1).sort((a, b) => b.total - a.total);
+
+    const coordenadoresBaixaConversao = coordenadores
+      .filter((item) => item.total >= 40)
+      .sort((a, b) => a.conversao - b.conversao);
+
+    const bairros = data.por_regiao
+      .filter((item) => item.total > 0)
+      .map((item) => ({
+        ...item,
+        conversao: percent(item.fechados, item.total),
+      }));
+
+    const bairrosCriticos = bairros
+      .filter((item) => item.prioridade === "prioritaria" || item.conversao < 10)
+      .sort((a, b) => {
+        const order = { prioritaria: 0, atencao: 1, normal: 2 } as Record<string, number>;
+        return (order[a.prioridade || "normal"] ?? 3) - (order[b.prioridade || "normal"] ?? 3) || a.conversao - b.conversao;
+      });
+
+    const lideres = data.ranking_lideres
+      .filter((item) => item.total > 0)
+      .map((item) => ({
+        ...item,
+        conversao: percent(item.fechados, item.total),
+      }));
+
+    const semanas = data.evolucao_semanal;
+    const semanaAtual = semanas[semanas.length - 1];
+    const semanaAnterior = semanas[semanas.length - 2];
+    const variacaoSemanal =
+      semanaAtual && semanaAnterior ? semanaAtual.total - semanaAnterior.total : data.crescimento_semana;
+
+    return {
+      taxaFechamento,
+      taxaSimpatia,
+      mediaPorCoordenador,
+      mediaPorLider,
+      coordenadores,
+      coordenadoresPoucaEquipe,
+      coordenadoresBaixaConversao,
+      bairrosCriticos,
+      lideres,
+      variacaoSemanal,
+    };
+  }, [data]);
+
+  const alertasTecnicos = useMemo(() => {
+    if (!data || !analytics) return [];
+
+    const alertas: Array<{ title: string; detail: string; href: string; action: string }> = [];
+
+    if (analytics.coordenadoresPoucaEquipe[0]) {
+      const item = analytics.coordenadoresPoucaEquipe[0];
+      alertas.push({
+        title: "Coordenador com equipe curta",
+        detail: `${item.coordenador_nome || "Coordenador"} tem ${item.lideres} líder(es) para ${item.total} pessoas.`,
+        href: "/usuarios",
+        action: "Abrir equipe",
+      });
     }
-  };
 
-  const primary = config.cor_primaria || "#1d4ed8";
-  const secondary = config.cor_secundaria || "#1e40af";
+    if (analytics.coordenadoresBaixaConversao[0]) {
+      const item = analytics.coordenadoresBaixaConversao[0];
+      alertas.push({
+        title: "Baixa conversão na coordenação",
+        detail: `${item.coordenador_nome || "Coordenador"} está com ${formatPercent(item.conversao)} de fechados.`,
+        href: "/usuarios",
+        action: "Ver coordenadores",
+      });
+    }
 
-  const pieData = data ? [
-    { name: "Outros", value: Math.max(0, data.total_contatos - data.total_simpatizantes - data.total_fechados), color: "#9CA3AF" },
-    { name: "Simpatizantes", value: data.total_simpatizantes, color: "#F59E0B" },
-    { name: "Fechados", value: data.total_fechados, color: "#10B981" },
-  ].filter(d => d.value > 0) : [];
+    if (analytics.bairrosCriticos[0]) {
+      const item = analytics.bairrosCriticos[0];
+      alertas.push({
+        title: "Bairro pede acompanhamento",
+        detail: `${item.regiao_nome || "Bairro"} está com ${formatPercent(item.conversao)} de conversão.`,
+        href: item.regiao_id ? `/regioes/${item.regiao_id}` : "/regioes",
+        action: "Abrir bairro",
+      });
+    }
 
-  const evolucaoChart = (data?.evolucao_semanal || []).map((s, i) => ({
-    semana: `Sem ${i + 1}`,
-    Total: s.total,
-    Fechados: s.fechados,
-  }));
+    for (const alerta of data.alertas.slice(0, 2)) {
+      if (!alertas.some((item) => item.detail === alerta)) {
+        alertas.push({
+          title: "Monitoramento geral",
+          detail: alerta,
+          href: "/regioes",
+          action: "Ver bairros",
+        });
+      }
+    }
+
+    return alertas.slice(0, 4);
+  }, [analytics, data]);
+
+  const contatosAbertos = data
+    ? Math.max(0, data.total_contatos - data.total_simpatizantes - data.total_fechados)
+    : 0;
 
   return (
     <Layout>
-      <div className="p-4 max-w-2xl mx-auto">
-
-        {/* Candidate Banner */}
-        <div className="rounded-2xl p-5 mb-4 text-white shadow-lg relative overflow-hidden"
-          style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
+      <div className="mx-auto max-w-5xl space-y-5 p-4 pb-8 sm:p-6">
+        <div
+          className="rounded-3xl p-5 text-white shadow-lg"
+          style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}
+        >
           <div className="flex items-center gap-4">
-            {config.foto_principal ? (
-              <img src={config.foto_principal} alt={config.nome_candidato}
-                className="w-16 h-16 rounded-full object-cover border-2 border-white/30 flex-shrink-0" />
-            ) : (
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-3xl">🏛️</span>
-              </div>
-            )}
+            <CampanhaAvatar
+              nome={campaignName}
+              logo={config.logo}
+              foto={config.foto_principal}
+              alt={campaignName}
+              className="w-16 h-16 rounded-full object-cover border-2 border-white/30 flex-shrink-0"
+              fallbackClassName="bg-white/20 flex items-center justify-center"
+              textClassName="text-lg font-black text-white"
+            />
             <div className="flex-1 min-w-0">
-              <p className="text-xl font-black truncate">{config.nome_candidato}</p>
-              {config.numero && (
-                <span className="inline-block bg-white/25 text-white text-xs font-bold px-2 py-0.5 rounded-full mt-0.5">
-                  Nº {config.numero}
-                </span>
-              )}
-              {config.slogan && (
-                <p className="text-xs text-white/70 italic mt-1 truncate">"{config.slogan}"</p>
-              )}
+              <p className="text-xs font-semibold uppercase tracking-wider text-white/70">Painel técnico da coordenação geral</p>
+              <h1 className="text-2xl font-black truncate">{campaignName}</h1>
+              <p className="text-sm text-white/80 mt-1">
+                Acompanhe produtividade da equipe, gargalos da operação e prioridade por bairro.
+              </p>
             </div>
-            {config.musica_url && (
-              <button onClick={toggleMusic}
-                className="flex-shrink-0 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all">
-                <span className="text-base">{musicPlaying ? "⏸️" : "🎵"}</span>
-              </button>
-            )}
           </div>
         </div>
 
         {loading && (
           <div className="text-center py-16">
-            <div className="inline-block w-10 h-10 border-4 border-t-transparent rounded-full animate-spin"
-              style={{ borderColor: primary, borderTopColor: "transparent" }} />
+            <div
+              className="inline-block w-10 h-10 border-4 border-t-transparent rounded-full animate-spin"
+              style={{ borderColor: primary, borderTopColor: "transparent" }}
+            />
+            <p className="text-sm text-gray-400 mt-3">Carregando painel técnico...</p>
           </div>
         )}
 
-        {data && (
+        {data && analytics && (
           <>
-            {/* Alertas */}
-            {data.alertas.length > 0 && (
-              <div className="mb-4 space-y-2">
-                {data.alertas.map((a, i) => (
-                  <div key={i} className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-sm text-amber-800">
-                    <span className="text-base">⚠️</span>
-                    <span>{a}</span>
+            <div className="grid md:grid-cols-6 gap-3">
+              <KpiCard
+                label="Base total"
+                value={data.total_contatos}
+                hint={`+${data.crescimento_semana} na última semana`}
+                color="text-blue-700"
+              />
+              <KpiCard
+                label="Contatos"
+                value={contatosAbertos}
+                hint="Ainda sem apoio declarado"
+                color="text-slate-600"
+              />
+              <KpiCard
+                label="Simpatizantes"
+                value={data.total_simpatizantes}
+                hint={`${formatPercent(analytics.taxaSimpatia)} da base`}
+                color="text-yellow-600"
+              />
+              <KpiCard
+                label="Fechados"
+                value={data.total_fechados}
+                hint={`${formatPercent(analytics.taxaFechamento)} da base`}
+                color="text-green-600"
+              />
+              <KpiCard
+                label="Coordenadores"
+                value={data.total_coordenadores}
+                hint={`${analytics.mediaPorCoordenador} pessoas por coordenador`}
+                color="text-indigo-600"
+              />
+              <KpiCard
+                label="Líderes"
+                value={data.total_lideres}
+                hint={`${analytics.mediaPorLider} pessoas por líder`}
+                color="text-purple-600"
+              />
+            </div>
+
+            <div className="grid md:grid-cols-4 gap-3">
+              <ActionCard
+                title="Novo coordenador"
+                hint="Abrir cadastro direto de coordenador"
+                onClick={() => navigate("/usuarios?novo=coordenador")}
+                primary
+              />
+              <ActionCard
+                title="Ver equipe"
+                hint="Analisar coordenadores e líderes"
+                onClick={() => navigate("/usuarios")}
+              />
+              <ActionCard
+                title="Ver bairros"
+                hint="Acompanhar bairros e prioridade"
+                onClick={() => navigate("/regioes")}
+              />
+              <ActionCard
+                title="Ver pessoas"
+                hint="Acompanhar contatos, simpatizantes e fechados"
+                onClick={() => navigate("/contatos")}
+              />
+            </div>
+
+            {alertasTecnicos.length > 0 && (
+              <Card className="p-4 border-amber-200 bg-amber-50/60">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-amber-950">Pontos de atenção da operação</p>
+                    <p className="text-xs text-amber-900/80 mt-1">Use isso para priorizar cobrança, redistribuição de equipe e agenda.</p>
                   </div>
-                ))}
-              </div>
-            )}
-
-            {/* Ações Rápidas */}
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              <button onClick={() => navigate("/contatos/novo")}
-                className="text-white rounded-xl p-3 text-center font-semibold text-xs shadow active:scale-95 transition-transform"
-                style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
-                ➕ Novo Contato
-              </button>
-              <button onClick={() => navigate("/usuarios/novo")}
-                className="bg-white border border-gray-200 text-gray-700 rounded-xl p-3 text-center font-semibold text-xs shadow-sm active:scale-95 transition-transform">
-                👤 Nova Equipe
-              </button>
-              <button onClick={() => navigate("/agenda/novo")}
-                className="bg-white border border-gray-200 text-gray-700 rounded-xl p-3 text-center font-semibold text-xs shadow-sm active:scale-95 transition-transform">
-                📅 Novo Evento
-              </button>
-            </div>
-
-            {/* Hero Card */}
-            <div className="rounded-2xl p-5 mb-4 text-white shadow-lg"
-              style={{ background: `linear-gradient(135deg, ${primary}cc, ${secondary})` }}>
-              <p className="text-sm text-white/70 mb-1">Total Geral da Base</p>
-              <div className="flex items-end gap-4">
-                <p className="text-6xl font-black leading-none">{data.total_contatos}</p>
-                <div className="mb-1">
-                  {data.crescimento_semana > 0 && (
-                    <span className="bg-green-400/30 text-white text-xs px-2 py-0.5 rounded-full font-medium">
-                      +{data.crescimento_semana} esta semana
-                    </span>
-                  )}
+                  <span className="rounded-full bg-amber-200 px-2.5 py-1 text-[11px] font-semibold text-amber-900">
+                    Prioridade
+                  </span>
                 </div>
-              </div>
-              <div className="flex gap-5 mt-3 text-sm">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-300" />
-                  <span>{data.total_simpatizantes} simpatizantes</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-300" />
-                  <span>{data.total_fechados} fechados</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center">
-                <p className="text-2xl font-bold" style={{ color: primary }}>{data.total_coordenadores}</p>
-                <p className="text-xs text-gray-500 mt-0.5">Coordenadores</p>
-              </div>
-              <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center">
-                <p className="text-2xl font-bold text-purple-600">{data.total_lideres}</p>
-                <p className="text-xs text-gray-500 mt-0.5">Líderes</p>
-              </div>
-              <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center">
-                <p className="text-2xl font-bold text-teal-600">{data.total_regioes}</p>
-                <p className="text-xs text-gray-500 mt-0.5">Regiões</p>
-              </div>
-            </div>
-
-            {/* Evolução Semanal */}
-            {evolucaoChart.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-700 mb-3">📈 Evolução Semanal</h2>
-                <ResponsiveContainer width="100%" height={180}>
-                  <AreaChart data={evolucaoChart}>
-                    <defs>
-                      <linearGradient id="cgColorTotal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={primary} stopOpacity={0.3} />
-                        <stop offset="95%" stopColor={primary} stopOpacity={0.02} />
-                      </linearGradient>
-                      <linearGradient id="cgColorFechados" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#10B981" stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="semana" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 10 }} />
-                    <Tooltip />
-                    <Area type="monotone" dataKey="Total" stroke={primary} strokeWidth={2} fill="url(#cgColorTotal)" />
-                    <Area type="monotone" dataKey="Fechados" stroke="#10B981" strokeWidth={2} fill="url(#cgColorFechados)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* Distribuição da Base */}
-            {pieData.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-700 mb-3">🥧 Distribuição da Base</h2>
-                <ResponsiveContainer width="100%" height={190}>
-                  <PieChart>
-                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70}
-                      label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
-                      {pieData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* Por Região */}
-            {data.por_regiao.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-gray-700">📍 Por Região</h2>
-                  <button onClick={() => navigate("/mapa")} className="text-xs font-medium" style={{ color: primary }}>
-                    Ver mapa →
-                  </button>
-                </div>
-                <ResponsiveContainer width="100%" height={180}>
-                  <BarChart data={data.por_regiao.map(r => ({ name: r.regiao_nome || "Sem região", total: r.total, fechados: r.fechados }))}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 10 }} />
-                    <Tooltip />
-                    <Bar dataKey="total" name="Total" fill={primary} radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="fechados" name="Fechados" fill="#10B981" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-                {data.por_regiao.filter(r => r.prioridade !== "normal").map((r, i) => {
-                  const cfg = prioridadeConfig[r.prioridade || "normal"];
-                  return (
-                    <div key={i}
-                      className={`flex items-center justify-between mt-2 px-3 py-2 ${cfg.bg} rounded-lg cursor-pointer`}
-                      onClick={() => r.regiao_id && navigate(`/regioes/${r.regiao_id}`)}>
-                      <span className={`text-xs font-medium ${cfg.color}`}>{r.regiao_nome} — {cfg.label}</span>
-                      <span className={`text-xs font-bold ${cfg.color}`}>{r.total} contatos</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Ranking Líderes */}
-            {data.ranking_lideres.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-gray-700">🏆 Ranking de Líderes</h2>
-                  <button onClick={() => navigate("/usuarios")} className="text-xs font-medium" style={{ color: primary }}>
-                    Ver equipe →
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {data.ranking_lideres.slice(0, 5).map((l, i) => (
-                    <div key={l.lider_id ?? i} className="flex items-center gap-3">
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${i === 0 ? "bg-yellow-400 text-yellow-900" : i === 1 ? "bg-gray-300 text-gray-700" : i === 2 ? "bg-orange-300 text-orange-900" : "bg-gray-100 text-gray-600"}`}>
-                        {i + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">{l.lider_nome || "Sem nome"}</p>
-                        <div className="flex gap-2 text-xs text-gray-500">
-                          <span>🟡 {l.simpatizantes}</span>
-                          <span>🟢 {l.fechados}</span>
-                        </div>
-                      </div>
-                      <span className="text-lg font-bold flex-shrink-0" style={{ color: primary }}>{l.total}</span>
-                    </div>
+                <div className="grid md:grid-cols-2 gap-3 mt-4">
+                  {alertasTecnicos.map((alerta, index) => (
+                    <button
+                      key={`${alerta.title}-${index}`}
+                      onClick={() => navigate(alerta.href)}
+                      className="text-left rounded-2xl border border-amber-200 bg-white px-4 py-3 transition-colors hover:bg-amber-50"
+                    >
+                      <p className="text-sm font-bold text-amber-900">{alerta.title}</p>
+                      <p className="text-xs text-amber-800 mt-1">{alerta.detail}</p>
+                      <p className="text-xs font-semibold text-amber-900 mt-3">{alerta.action} →</p>
+                    </button>
                   ))}
                 </div>
-              </div>
+              </Card>
             )}
 
-            {/* Por Coordenador */}
-            {data.por_coordenador.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-gray-700">📋 Por Coordenador</h2>
-                  <button onClick={() => navigate("/usuarios")} className="text-xs font-medium" style={{ color: primary }}>
-                    Ver todos →
+            <div className="grid lg:grid-cols-2 gap-4">
+              <Card className="p-4 ring-1 ring-blue-100">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Produtividade por coordenador</p>
+                    <p className="text-xs text-gray-500">Base, equipe, conversão e distribuição de carga.</p>
+                  </div>
+                  <button onClick={() => navigate("/usuarios")} className="text-xs font-semibold text-blue-700">
+                    Ver equipe
                   </button>
                 </div>
                 <div className="space-y-3">
-                  {data.por_coordenador.map((c, i) => (
-                    <div key={c.coordenador_id ?? i} className="border border-gray-100 rounded-xl p-3">
-                      <div className="flex items-center justify-between">
+                  {analytics.coordenadores.slice(0, 6).map((item, index) => (
+                    <div key={item.coordenador_id ?? index} className="rounded-2xl border border-gray-100 p-3">
+                      <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-gray-800 truncate">{c.coordenador_nome || "Sem coordenador"}</p>
-                          {c.regiao_nome && <p className="text-xs text-gray-400">📍 {c.regiao_nome}</p>}
+                          <p className="text-sm font-bold text-gray-900 truncate">{item.coordenador_nome || "Coordenador"}</p>
+                          <p className="text-xs text-gray-500 truncate">{item.regiao_nome || "Sem bairro"}</p>
                         </div>
-                        <span className="text-2xl font-bold flex-shrink-0 ml-2" style={{ color: primary }}>{c.total}</span>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-lg font-black text-blue-700">{item.total}</p>
+                          <p className="text-[11px] text-gray-400">pessoas</p>
+                        </div>
                       </div>
-                      <div className="flex gap-3 mt-2 text-xs text-gray-500">
-                        <span>👥 {c.lideres} líderes</span>
-                        <span>🟡 {c.simpatizantes}</span>
-                        <span>🟢 {c.fechados}</span>
+                      <div className="grid grid-cols-5 gap-2 mt-3 text-xs">
+                        <div className="rounded-xl bg-gray-50 px-2 py-2 text-center">
+                          <span className="block font-black text-gray-800">{item.lideres}</span>
+                          <span className="text-gray-500">líderes</span>
+                        </div>
+                        <div className="rounded-xl bg-gray-50 px-2 py-2 text-center">
+                          <span className="block font-black text-slate-600">{Math.max(0, item.total - item.simpatizantes - item.fechados)}</span>
+                          <span className="text-gray-500">contatos</span>
+                        </div>
+                        <div className="rounded-xl bg-gray-50 px-2 py-2 text-center">
+                          <span className="block font-black text-yellow-600">{item.simpatizantes}</span>
+                          <span className="text-gray-500">simpatizantes</span>
+                        </div>
+                        <div className="rounded-xl bg-gray-50 px-2 py-2 text-center">
+                          <span className="block font-black text-green-600">{item.fechados}</span>
+                          <span className="text-gray-500">fechados</span>
+                        </div>
+                        <div className="rounded-xl bg-gray-50 px-2 py-2 text-center">
+                          <span className="block font-black text-indigo-600">{formatPercent(item.conversao)}</span>
+                          <span className="text-gray-500">conversÃ£o</span>
+                        </div>
                       </div>
-                      <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full"
-                          style={{ width: `${data.total_contatos > 0 ? (c.total / data.total_contatos) * 100 : 0}%`, backgroundColor: primary }} />
-                      </div>
+                      <p className="text-[11px] text-gray-500 mt-3">
+                        Média de {item.mediaPorLider} pessoas por líder nesta coordenação.
+                      </p>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              </Card>
 
-            {/* Próximos Eventos */}
-            {data.proximos_eventos.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-gray-700">📅 Próximos Eventos</h2>
-                  <button onClick={() => navigate("/agenda")} className="text-xs font-medium" style={{ color: primary }}>
-                    Ver agenda →
+              <Card className="p-4 ring-1 ring-green-100">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Bairros com foco operacional</p>
+                    <p className="text-xs text-gray-500">Prioridade política somada a desempenho real.</p>
+                  </div>
+                  <button onClick={() => navigate("/regioes")} className="text-xs font-semibold text-blue-700">
+                    Ver bairros
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {analytics.bairrosCriticos.slice(0, 6).map((item, index) => {
+                    const prioridade = getPrioridadeConfig(item.prioridade);
+                    return (
+                      <button
+                        key={item.regiao_id ?? index}
+                        onClick={() => item.regiao_id && navigate(`/regioes/${item.regiao_id}`)}
+                        className="w-full text-left rounded-2xl border border-gray-100 px-4 py-3 hover:border-gray-200"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-bold text-gray-900 truncate">{item.regiao_nome || "Bairro"}</p>
+                              <span className={`text-[11px] font-semibold px-2 py-1 rounded-full ${prioridade.pill}`}>
+                                {prioridade.label}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {Math.max(0, item.total - item.simpatizantes - item.fechados)} contatos, {item.lideres} líderes, {item.fechados} fechados
+                            </p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-sm font-black text-green-600">{formatPercent(item.conversao)}</p>
+                            <p className="text-[11px] text-gray-400">conversão</p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Card>
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-4">
+              <Card className="p-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Líderes mais produtivos</p>
+                    <p className="text-xs text-gray-500">Quem mais movimenta a ponta da campanha.</p>
+                  </div>
+                  <button onClick={() => navigate("/usuarios")} className="text-xs font-semibold text-blue-700">
+                    Ver líderes
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {data.proximos_eventos.map((e) => (
-                    <div key={e.id} className="flex gap-3 items-start p-3 rounded-xl"
-                      style={{ backgroundColor: primary + "12" }}>
-                      <div className="rounded-lg p-2 text-center min-w-[44px] flex-shrink-0"
-                        style={{ backgroundColor: primary + "22" }}>
-                        <p className="text-xs font-bold" style={{ color: primary }}>
-                          {new Date(e.data + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                  {analytics.lideres.slice(0, 8).map((item, index) => (
+                    <div key={item.lider_id ?? index} className="flex items-center gap-3 rounded-2xl border border-gray-100 px-3 py-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center text-xs font-black flex-shrink-0">
+                        {index + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{item.lider_nome || "Líder"}</p>
+                        {item.coordenador_nome && (
+                          <p className="text-xs text-indigo-500 truncate">Coordenador: {item.coordenador_nome}</p>
+                        )}
+                        <p className="text-xs text-gray-500">
+                          {Math.max(0, item.total - item.simpatizantes - item.fechados)} contatos, {item.simpatizantes} simpatizantes, {item.fechados} fechados
                         </p>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">{e.titulo}</p>
-                        <p className="text-xs text-gray-500">
-                          {tipoEventoLabel[e.tipo_evento]} {e.hora && `• ${e.hora.slice(0, 5)}`} {e.local && `• ${e.local}`}
-                        </p>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm font-black text-green-600">{formatPercent(item.conversao)}</p>
+                        <p className="text-[11px] text-gray-400">conv.</p>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              </Card>
+
+              <Card className="p-4 bg-gray-50/70">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Leitura rápida da semana</p>
+                    <p className="text-xs text-gray-500">Resumo rápido de movimento e agenda.</p>
+                  </div>
+                  <button onClick={() => navigate("/agenda")} className="text-xs font-semibold text-blue-700">
+                    Ver agenda
+                  </button>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="rounded-2xl bg-white px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Variação semanal</p>
+                    <p className={`text-2xl font-black mt-2 ${analytics.variacaoSemanal >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      {analytics.variacaoSemanal >= 0 ? "+" : ""}
+                      {analytics.variacaoSemanal}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">comparado com a semana anterior</p>
+                  </div>
+                  <div className="rounded-2xl bg-white px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Taxa de simpatia</p>
+                    <p className="text-2xl font-black mt-2 text-yellow-600">{formatPercent(analytics.taxaSimpatia)}</p>
+                    <p className="text-xs text-gray-500 mt-1">parcela da base em simpatizantes</p>
+                  </div>
+                </div>
+                <div className="space-y-2 mt-4">
+                  {data.proximos_eventos.slice(0, 4).map((evento) => (
+                    <div key={evento.id} className="rounded-2xl bg-white px-4 py-3 border border-gray-100">
+                      <p className="text-sm font-bold text-gray-900">{evento.titulo}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(`${evento.data}T12:00:00`).toLocaleDateString("pt-BR")}
+                        {evento.hora ? ` • ${evento.hora.slice(0, 5)}` : ""}
+                        {evento.local ? ` • ${evento.local}` : ""}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
 
             {data.total_contatos === 0 && (
-              <div className="text-center py-8 text-gray-400">
-                <p className="text-5xl mb-3">📊</p>
-                <p className="text-sm font-medium">Nenhum dado ainda</p>
-                <p className="text-xs mt-1">Cadastre contatos e estruture a equipe para ver as estatísticas</p>
-              </div>
+              <Card className="p-8 text-center text-gray-500">
+                <p className="text-lg font-bold text-gray-800">Ainda não há dados suficientes</p>
+                <p className="text-sm mt-2">Cadastre a equipe e as primeiras pessoas para ativar o painel técnico.</p>
+              </Card>
             )}
           </>
         )}

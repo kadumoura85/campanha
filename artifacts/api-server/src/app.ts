@@ -1,5 +1,7 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import { existsSync } from "fs";
+import path from "path";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
@@ -26,8 +28,13 @@ app.use(
   }),
 );
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+const uploadsDir = path.resolve(process.cwd(), "uploads");
+if (existsSync(uploadsDir)) {
+  app.use("/uploads", express.static(uploadsDir));
+}
 
 app.use("/api", router);
 

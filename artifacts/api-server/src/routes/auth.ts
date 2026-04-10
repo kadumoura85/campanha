@@ -1,13 +1,15 @@
 import { Router, type IRouter } from "express";
+import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { eq } from "drizzle-orm";
-import { db, usuariosTable } from "@workspace/db";
+import { db, pool, usuariosTable } from "@workspace/db";
 import { LoginBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || "campanha_secret_key_2024";
+export type UsuarioAutenticado = typeof usuariosTable.$inferSelect;
 
 export function verifyToken(token: string): { userId: number } | null {
   try {
@@ -18,21 +20,55 @@ export function verifyToken(token: string): { userId: number } | null {
   }
 }
 
-export async function getUsuarioFromRequest(req: any): Promise<typeof usuariosTable.$inferSelect | null> {
+export async function getUsuarioFromRequest(req: Request): Promise<UsuarioAutenticado | null> {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return null;
   }
+
   const token = authHeader.slice(7);
   const decoded = verifyToken(token);
   if (!decoded) return null;
 
-  const [usuario] = await db
-    .select()
-    .from(usuariosTable)
-    .where(eq(usuariosTable.id, decoded.userId));
+  const result = await pool.query(
+    `select id, nome, telefone, email, senha_hash, tipo, coordenador_id, regiao_id, bairro_regiao, ativo, created_at
+     from usuarios
+     where id = $1
+     limit 1`,
+    [decoded.userId],
+  );
 
-  return usuario || null;
+  return (result.rows[0] as UsuarioAutenticado | undefined) || null;
+}
+
+export async function requireUsuario(req: Request, res: Response): Promise<UsuarioAutenticado | null> {
+  const usuario = await getUsuarioFromRequest(req);
+  if (!usuario) {
+    res.status(401).json({ error: "Nao autenticado" });
+    return null;
+  }
+
+  return usuario;
+}
+
+export function hasAnyRole(usuario: UsuarioAutenticado, roles: readonly string[]) {
+  return roles.includes(usuario.tipo);
+}
+
+export async function requireRoles(
+  req: Request,
+  res: Response,
+  roles: readonly string[],
+): Promise<UsuarioAutenticado | null> {
+  const usuario = await requireUsuario(req, res);
+  if (!usuario) return null;
+
+  if (!hasAnyRole(usuario, roles)) {
+    res.status(403).json({ error: "Acesso negado" });
+    return null;
+  }
+
+  return usuario;
 }
 
 router.post("/auth/login", async (req, res): Promise<void> => {
@@ -44,10 +80,14 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
   const { telefone, senha } = parsed.data;
 
-  const [usuario] = await db
-    .select()
-    .from(usuariosTable)
-    .where(eq(usuariosTable.telefone, telefone));
+  const result = await pool.query(
+    `select id, nome, telefone, email, senha_hash, tipo, coordenador_id, regiao_id, bairro_regiao, ativo, created_at
+     from usuarios
+     where telefone = $1
+     limit 1`,
+    [telefone],
+  );
+  const usuario = result.rows[0] as UsuarioAutenticado | undefined;
 
   if (!usuario) {
     res.status(401).json({ error: "Telefone ou senha incorretos" });
@@ -61,7 +101,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   }
 
   if (!usuario.ativo) {
-    res.status(401).json({ error: "Usuário inativo" });
+    res.status(401).json({ error: "Usuario inativo" });
     return;
   }
 
@@ -76,11 +116,9 @@ router.post("/auth/logout", (_req, res): void => {
 });
 
 router.get("/auth/me", async (req, res): Promise<void> => {
-  const usuario = await getUsuarioFromRequest(req);
-  if (!usuario) {
-    res.status(401).json({ error: "Não autenticado" });
-    return;
-  }
+  const usuario = await requireUsuario(req, res);
+  if (!usuario) return;
+
   const { senha_hash: _, ...usuarioSemSenha } = usuario;
   res.json(usuarioSemSenha);
 });

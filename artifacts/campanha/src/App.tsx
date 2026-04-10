@@ -11,6 +11,7 @@ import DashboardVereadorPage from "@/pages/dashboard-vereador";
 import ContatosPage from "@/pages/contatos";
 import ContatoFormPage from "@/pages/contato-form";
 import RegioesPage from "@/pages/regioes";
+import RegiaoNovaPage from "@/pages/regiao-nova";
 import RegiaoDetalhePage from "@/pages/regiao-detalhe";
 import AgendaPage from "@/pages/agenda";
 import MapaPage from "@/pages/mapa";
@@ -48,11 +49,13 @@ function AppRoutes() {
       <Route path="/login" component={LoginPage} />
       <Route path="/dashboard/vereador" component={DashboardVereadorPage} />
       <Route path="/dashboard/coordenador-geral" component={DashboardCoordenadorGeralPage} />
+      <Route path="/dashboard/coordenador" component={DashboardCoordenadorRegionalPage} />
       <Route path="/dashboard/coordenador-regional" component={DashboardCoordenadorRegionalPage} />
       <Route path="/dashboard/lider" component={DashboardLiderPage} />
       <Route path="/contatos/novo" component={() => <ContatoFormPage modo="novo" />} />
       <Route path="/contatos/:id/editar" component={() => <ContatoFormPage modo="editar" />} />
       <Route path="/contatos" component={ContatosPage} />
+      <Route path="/regioes/nova" component={RegiaoNovaPage} />
       <Route path="/regioes/:id" component={RegiaoDetalhePage} />
       <Route path="/regioes" component={RegioesPage} />
       <Route path="/agenda" component={AgendaPage} />

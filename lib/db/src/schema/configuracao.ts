@@ -15,6 +15,7 @@ export const configuracaoCampanhaTable = pgTable("configuracao_campanha", {
   capa_imagem: text("capa_imagem"),
   frase_institucional: text("frase_institucional"),
   musica_url: text("musica_url"),
+  musica_youtube_url: text("musica_youtube_url"),
   descricao_curta: text("descricao_curta"),
   updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

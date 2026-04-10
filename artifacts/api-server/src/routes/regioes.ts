@@ -1,21 +1,54 @@
 import { Router, type IRouter } from "express";
 import { eq, sql } from "drizzle-orm";
-import { db, regioesTable, contatosTable, usuariosTable, observacoesRegiaoTable, eventosTable } from "@workspace/db";
-import { getUsuarioFromRequest } from "./auth";
+import {
+  db,
+  regioesTable,
+  contatosTable,
+  usuariosTable,
+  observacoesRegiaoTable,
+  eventosTable,
+} from "@workspace/db";
+import { requireRoles, requireUsuario } from "./auth";
 
 const router: IRouter = Router();
 
-router.get("/regioes", async (req, res): Promise<void> => {
-  const usuario = await getUsuarioFromRequest(req);
-  if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
+type UsuarioPermitido = Awaited<ReturnType<typeof requireUsuario>>;
 
-  const regioes = await db
+function getRegionAccessCondition(usuario: UsuarioPermitido) {
+  if (!usuario) return sql`1 = 0`;
+
+  if (["super_admin", "vereador", "coordenador_geral", "coordenador_regional"].includes(usuario.tipo)) {
+    return undefined;
+  }
+
+  if (usuario.tipo === "lider") {
+    if (!usuario.regiao_id) {
+      return sql`1 = 0`;
+    }
+
+    return eq(regioesTable.id, usuario.regiao_id);
+  }
+
+  return sql`1 = 0`;
+}
+
+function canAccessRegionById(usuario: UsuarioPermitido, regiaoId: number) {
+  if (!usuario) return false;
+  if (["super_admin", "vereador", "coordenador_geral", "coordenador_regional"].includes(usuario.tipo)) return true;
+  if (usuario.tipo === "lider") return usuario.regiao_id === regiaoId;
+  return false;
+}
+
+router.get("/regioes", async (req, res): Promise<void> => {
+  const usuario = await requireUsuario(req, res);
+  if (!usuario) return;
+
+  const accessCondition = getRegionAccessCondition(usuario);
+  const baseQuery = db
     .select({
       id: regioesTable.id,
       nome: regioesTable.nome,
       descricao: regioesTable.descricao,
-      coordenador_regional_id: regioesTable.coordenador_regional_id,
-      coordenador_nome: sql<string | null>`coord.nome`,
       cor: regioesTable.cor,
       prioridade: regioesTable.prioridade,
       observacao_estrategica: regioesTable.observacao_estrategica,
@@ -25,51 +58,59 @@ router.get("/regioes", async (req, res): Promise<void> => {
       total_simpatizantes: sql<number>`count(distinct c.id) filter (where c.nivel = 'simpatizante')::int`,
       total_fechados: sql<number>`count(distinct c.id) filter (where c.nivel = 'fechado')::int`,
       total_lideres: sql<number>`count(distinct u.id) filter (where u.tipo = 'lider')::int`,
+      total_coordenadores: sql<number>`count(distinct u.id) filter (where u.tipo = 'coordenador_regional')::int`,
+      coordenador_nome: sql<string | null>`nullif(string_agg(distinct case when u.tipo = 'coordenador_regional' then u.nome end, ', '), '')`,
     })
     .from(regioesTable)
-    .leftJoin(sql`usuarios coord`, sql`coord.id = ${regioesTable.coordenador_regional_id}`)
     .leftJoin(sql`contatos c`, sql`c.regiao_id = ${regioesTable.id}`)
-    .leftJoin(sql`usuarios u`, sql`u.regiao_id = ${regioesTable.id}`)
-    .groupBy(regioesTable.id, sql`coord.nome`)
-    .orderBy(regioesTable.nome);
+    .leftJoin(sql`usuarios u`, sql`u.regiao_id = ${regioesTable.id}`);
+
+  const regioes = accessCondition
+    ? await baseQuery.where(accessCondition).groupBy(regioesTable.id).orderBy(regioesTable.nome)
+    : await baseQuery.groupBy(regioesTable.id).orderBy(regioesTable.nome);
 
   res.json(regioes);
 });
 
 router.post("/regioes", async (req, res): Promise<void> => {
-  const usuario = await getUsuarioFromRequest(req);
-  if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
-  if (!["super_admin", "vereador", "coordenador_geral"].includes(usuario.tipo)) {
-    res.status(403).json({ error: "Acesso negado" }); return;
+  const usuario = await requireRoles(req, res, ["super_admin", "vereador", "coordenador_geral"]);
+  if (!usuario) return;
+
+  const { nome, descricao, cor, prioridade, observacao_estrategica } = req.body;
+  if (!nome) {
+    res.status(400).json({ error: "Nome é obrigatório" });
+    return;
   }
 
-  const { nome, descricao, coordenador_regional_id, cor, prioridade, observacao_estrategica } = req.body;
-  if (!nome) { res.status(400).json({ error: "Nome é obrigatório" }); return; }
-
-  const [regiao] = await db.insert(regioesTable).values({
-    nome,
-    descricao: descricao || null,
-    coordenador_regional_id: coordenador_regional_id || null,
-    cor: cor || "#3B82F6",
-    prioridade: prioridade || "normal",
-    observacao_estrategica: observacao_estrategica || null,
-  }).returning();
+  const [regiao] = await db
+    .insert(regioesTable)
+    .values({
+      nome,
+      descricao: descricao || null,
+      cor: cor || "#3B82F6",
+      prioridade: prioridade || "normal",
+      observacao_estrategica: observacao_estrategica || null,
+    })
+    .returning();
 
   res.status(201).json(regiao);
 });
 
 router.get("/regioes/:id", async (req, res): Promise<void> => {
-  const usuario = await getUsuarioFromRequest(req);
-  if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
+  const usuario = await requireUsuario(req, res);
+  if (!usuario) return;
 
   const id = Number(req.params["id"]);
+  if (!canAccessRegionById(usuario, id)) {
+    res.status(404).json({ error: "Região não encontrada" });
+    return;
+  }
+
   const [regiao] = await db
     .select({
       id: regioesTable.id,
       nome: regioesTable.nome,
       descricao: regioesTable.descricao,
-      coordenador_regional_id: regioesTable.coordenador_regional_id,
-      coordenador_nome: sql<string | null>`coord.nome`,
       cor: regioesTable.cor,
       prioridade: regioesTable.prioridade,
       observacao_estrategica: regioesTable.observacao_estrategica,
@@ -79,15 +120,30 @@ router.get("/regioes/:id", async (req, res): Promise<void> => {
       total_simpatizantes: sql<number>`count(distinct c.id) filter (where c.nivel = 'simpatizante')::int`,
       total_fechados: sql<number>`count(distinct c.id) filter (where c.nivel = 'fechado')::int`,
       total_lideres: sql<number>`count(distinct u.id) filter (where u.tipo = 'lider')::int`,
+      total_coordenadores: sql<number>`count(distinct u.id) filter (where u.tipo = 'coordenador_regional')::int`,
+      coordenador_nome: sql<string | null>`nullif(string_agg(distinct case when u.tipo = 'coordenador_regional' then u.nome end, ', '), '')`,
     })
     .from(regioesTable)
-    .leftJoin(sql`usuarios coord`, sql`coord.id = ${regioesTable.coordenador_regional_id}`)
     .leftJoin(sql`contatos c`, sql`c.regiao_id = ${regioesTable.id}`)
     .leftJoin(sql`usuarios u`, sql`u.regiao_id = ${regioesTable.id}`)
     .where(eq(regioesTable.id, id))
-    .groupBy(regioesTable.id, sql`coord.nome`);
+    .groupBy(regioesTable.id);
 
-  if (!regiao) { res.status(404).json({ error: "Região não encontrada" }); return; }
+  if (!regiao) {
+    res.status(404).json({ error: "Região não encontrada" });
+    return;
+  }
+
+  const coordenadores = await db
+    .select({
+      id: usuariosTable.id,
+      nome: usuariosTable.nome,
+      telefone: usuariosTable.telefone,
+      ativo: usuariosTable.ativo,
+    })
+    .from(usuariosTable)
+    .where(sql`${usuariosTable.regiao_id} = ${id} and ${usuariosTable.tipo} = 'coordenador_regional'`)
+    .orderBy(usuariosTable.nome);
 
   const lideres = await db
     .select({
@@ -124,43 +180,59 @@ router.get("/regioes/:id", async (req, res): Promise<void> => {
     .orderBy(eventosTable.data)
     .limit(5);
 
-  res.json({ ...regiao, lideres, observacoes, proximos_eventos });
+  res.json({ ...regiao, coordenadores, lideres, observacoes, proximos_eventos });
 });
 
 router.patch("/regioes/:id", async (req, res): Promise<void> => {
-  const usuario = await getUsuarioFromRequest(req);
-  if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
+  const usuario = await requireRoles(req, res, ["super_admin", "vereador", "coordenador_geral"]);
+  if (!usuario) return;
 
   const id = Number(req.params["id"]);
   const updates: Record<string, unknown> = {};
-  const allowed = ["nome", "descricao", "coordenador_regional_id", "cor", "prioridade", "observacao_estrategica"];
+  const allowed = ["nome", "descricao", "cor", "prioridade", "observacao_estrategica"];
+
   for (const key of allowed) {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
   }
 
   const [updated] = await db.update(regioesTable).set(updates).where(eq(regioesTable.id, id)).returning();
-  if (!updated) { res.status(404).json({ error: "Região não encontrada" }); return; }
+  if (!updated) {
+    res.status(404).json({ error: "Região não encontrada" });
+    return;
+  }
+
   res.json(updated);
 });
 
 router.delete("/regioes/:id", async (req, res): Promise<void> => {
-  const usuario = await getUsuarioFromRequest(req);
-  if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
-  if (!["super_admin", "vereador", "coordenador_geral"].includes(usuario.tipo)) {
-    res.status(403).json({ error: "Acesso negado" }); return;
-  }
+  const usuario = await requireRoles(req, res, ["super_admin", "vereador", "coordenador_geral"]);
+  if (!usuario) return;
 
   const id = Number(req.params["id"]);
+  await db.update(usuariosTable).set({ regiao_id: null }).where(eq(usuariosTable.regiao_id, id));
+  await db.update(contatosTable).set({ regiao_id: null }).where(eq(contatosTable.regiao_id, id));
+  await db.delete(observacoesRegiaoTable).where(eq(observacoesRegiaoTable.regiao_id, id));
+  await db.delete(eventosTable).where(eq(eventosTable.regiao_id, id));
+
   const [deleted] = await db.delete(regioesTable).where(eq(regioesTable.id, id)).returning();
-  if (!deleted) { res.status(404).json({ error: "Região não encontrada" }); return; }
+  if (!deleted) {
+    res.status(404).json({ error: "Região não encontrada" });
+    return;
+  }
+
   res.status(204).send();
 });
 
 router.get("/regioes/:id/observacoes", async (req, res): Promise<void> => {
-  const usuario = await getUsuarioFromRequest(req);
-  if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
+  const usuario = await requireUsuario(req, res);
+  if (!usuario) return;
 
   const id = Number(req.params["id"]);
+  if (!canAccessRegionById(usuario, id)) {
+    res.status(404).json({ error: "Região não encontrada" });
+    return;
+  }
+
   const obs = await db
     .select({
       id: observacoesRegiaoTable.id,
@@ -179,18 +251,29 @@ router.get("/regioes/:id/observacoes", async (req, res): Promise<void> => {
 });
 
 router.post("/regioes/:id/observacoes", async (req, res): Promise<void> => {
-  const usuario = await getUsuarioFromRequest(req);
-  if (!usuario) { res.status(401).json({ error: "Não autenticado" }); return; }
+  const usuario = await requireUsuario(req, res);
+  if (!usuario) return;
 
   const regiao_id = Number(req.params["id"]);
-  const { observacao } = req.body;
-  if (!observacao) { res.status(400).json({ error: "Observação é obrigatória" }); return; }
+  if (!canAccessRegionById(usuario, regiao_id)) {
+    res.status(404).json({ error: "Região não encontrada" });
+    return;
+  }
 
-  const [obs] = await db.insert(observacoesRegiaoTable).values({
-    regiao_id,
-    autor_id: usuario.id,
-    observacao,
-  }).returning();
+  const { observacao } = req.body;
+  if (!observacao) {
+    res.status(400).json({ error: "Observação é obrigatória" });
+    return;
+  }
+
+  const [obs] = await db
+    .insert(observacoesRegiaoTable)
+    .values({
+      regiao_id,
+      autor_id: usuario.id,
+      observacao,
+    })
+    .returning();
 
   res.status(201).json({ ...obs, autor_nome: usuario.nome });
 });

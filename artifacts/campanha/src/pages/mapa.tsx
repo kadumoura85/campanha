@@ -124,9 +124,19 @@ export default function MapaPage() {
   return (
     <Layout>
       <div className="p-4 max-w-lg mx-auto">
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">Mapa Estratégico</h1>
-          <p className="text-sm text-gray-500">{regioes.length} regiões da campanha</p>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Mapa Estratégico</h1>
+            <p className="text-sm text-gray-500">{regioes.length} bairros da campanha</p>
+          </div>
+          {usuario?.tipo === "coordenador_geral" && (
+            <button
+              onClick={() => navigate("/regioes")}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform active:scale-95"
+            >
+              Ver bairros
+            </button>
+          )}
         </div>
 
         {/* Filtro tabs */}
@@ -148,13 +158,13 @@ export default function MapaPage() {
           </div>
         )}
 
-        {/* Grid de regiões */}
+        {/* Grid de bairros */}
         {!loading && (
           <>
             {regioesFiltradas.length === 0 && (
               <div className="text-center py-8 text-gray-400">
                 <p className="text-4xl mb-2">🗺️</p>
-                <p className="text-sm">Nenhuma região nessa categoria</p>
+                <p className="text-sm">Nenhum bairro nessa categoria</p>
               </div>
             )}
 
@@ -184,7 +194,7 @@ export default function MapaPage() {
               })}
             </div>
 
-            {/* Painel da região selecionada */}
+            {/* Painel do bairro selecionado */}
             {selected && (
               <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-200 mb-4">
                 <div className="flex items-center justify-between mb-3">
@@ -197,10 +207,14 @@ export default function MapaPage() {
                   <p className="text-sm text-gray-500 mb-3">👤 {selected.coordenador_nome}</p>
                 )}
 
-                <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                   <div className="bg-gray-50 rounded-xl p-3 text-center">
                     <p className="text-2xl font-bold text-blue-600">{selected.total_contatos}</p>
                     <p className="text-xs text-gray-500">Total</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-bold text-slate-600">{Math.max(0, selected.total_contatos - selected.total_simpatizantes - selected.total_fechados)}</p>
+                    <p className="text-xs text-gray-500">Contatos</p>
                   </div>
                   <div className="bg-green-50 rounded-xl p-3 text-center">
                     <p className="text-2xl font-bold text-green-600">{selected.total_fechados}</p>
@@ -317,7 +331,7 @@ export default function MapaPage() {
         {regioes.length === 0 && !loading && (
           <div className="text-center py-12 text-gray-400">
             <p className="text-5xl mb-3">🗺️</p>
-            <p>Nenhuma região cadastrada ainda</p>
+            <p>Nenhum bairro cadastrado ainda</p>
           </div>
         )}
       </div>

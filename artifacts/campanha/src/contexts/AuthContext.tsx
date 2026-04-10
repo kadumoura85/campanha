@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { apiGet, apiPost } from "@/lib/api";
 
 export type TipoUsuario = "super_admin" | "vereador" | "coordenador_geral" | "coordenador_regional" | "lider";
 
@@ -16,19 +17,6 @@ export interface Usuario {
 }
 
 const TOKEN_KEY = "campanha_token";
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-
-function authFetch(url: string, options: RequestInit = {}) {
-  const token = localStorage.getItem(TOKEN_KEY);
-  return fetch(`${BASE}${url}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-  });
-}
 
 interface AuthContextValue {
   usuario: Usuario | null;
@@ -47,13 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) { setLoading(false); return; }
     try {
-      const resp = await authFetch("/api/auth/me");
-      if (resp.ok) {
-        const data = await resp.json();
-        setUsuario(data);
-      } else {
-        localStorage.removeItem(TOKEN_KEY);
-      }
+      const data = await apiGet<Usuario>("/api/auth/me");
+      setUsuario(data);
     } catch {
       localStorage.removeItem(TOKEN_KEY);
     } finally {
@@ -64,19 +47,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => { loadUsuario(); }, [loadUsuario]);
 
   const login = async (telefone: string, senha: string): Promise<Usuario> => {
-    const resp = await authFetch("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ telefone, senha }),
+    const data = await apiPost<{ usuario: Usuario; token: string }>("/api/auth/login", {
+      telefone,
+      senha,
     });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || "Erro ao fazer login");
     localStorage.setItem(TOKEN_KEY, data.token);
     setUsuario(data.usuario);
     return data.usuario as Usuario;
   };
 
   const logout = async () => {
-    await authFetch("/api/auth/logout", { method: "POST" });
+    await apiPost("/api/auth/logout", {});
     localStorage.removeItem(TOKEN_KEY);
     setUsuario(null);
   };

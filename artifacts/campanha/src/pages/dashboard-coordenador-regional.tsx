@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import ConversionThermometer from "@/components/ConversionThermometer";
 import Layout from "@/components/Layout";
 import { apiGet } from "@/lib/api";
+import { getPrioridadeBucket, getPrioridadeConfig } from "@/lib/prioridade";
 
 interface StatsLider {
   lider_id: number | null;
@@ -34,6 +36,7 @@ interface DashboardCoordenadorRegional {
   total_simpatizantes: number;
   total_fechados: number;
   total_lideres: number;
+  regiao_id: number | null;
   regiao_nome: string | null;
   regiao_prioridade: string | null;
   ranking_lideres: StatsLider[];
@@ -58,145 +61,258 @@ export default function DashboardCoordenadorRegionalPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const prioridadeBairro = getPrioridadeConfig(data?.regiao_prioridade);
+  const bairroPrioritario =
+    data?.regiao_prioridade && getPrioridadeBucket(data.regiao_prioridade) !== "normal";
+  const totalContatosAbertos = data
+    ? Math.max(0, data.total_base - data.total_simpatizantes - data.total_fechados)
+    : 0;
+  const taxaFechados = data?.total_base ? (data.total_fechados / data.total_base) * 100 : 0;
+
   return (
     <Layout>
-      <div className="p-4 max-w-lg mx-auto">
-        <div className="mb-5">
-          <h1 className="text-2xl font-bold text-gray-900">Minha Região</h1>
-          {data?.regiao_nome && (
-            <p className="text-sm text-gray-500">📍 {data.regiao_nome}</p>
+      <div className="mx-auto max-w-5xl space-y-5 p-4 pb-8 sm:p-6">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-500">
+              Painel do coordenador
+            </p>
+            <h1 className="text-3xl font-black text-slate-900">Meu bairro</h1>
+            {data?.regiao_nome && (
+              <p className="mt-1 text-base text-slate-500">Bairro acompanhado: {data.regiao_nome}</p>
+            )}
+          </div>
+          {bairroPrioritario && prioridadeBairro ? (
+            <div
+              className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${prioridadeBairro.bg} ${prioridadeBairro.color}`}
+            >
+              Prioridade atual: {prioridadeBairro.label}
+            </div>
+          ) : (
+            <div className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
+              Situação normal
+            </div>
           )}
         </div>
 
         {loading && (
-          <div className="text-center py-16">
-            <div className="inline-block w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div className="py-16 text-center">
+            <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
           </div>
         )}
 
         {data && (
           <>
-            {/* Hero */}
-            <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl p-5 mb-4 text-white shadow-lg">
-              <div className="flex items-start justify-between">
+            <div className="mb-5 rounded-[28px] bg-gradient-to-br from-indigo-600 via-violet-600 to-indigo-800 p-6 text-white shadow-xl">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <p className="text-sm text-indigo-200 mb-1">Total da Minha Região</p>
-                  <p className="text-6xl font-black">{data.total_base}</p>
+                  <p className="text-sm text-indigo-100">Total de pessoas no meu bairro</p>
+                  <p className="mt-1 text-6xl font-black leading-none">{data.total_base}</p>
+                  <p className="mt-3 max-w-xl text-sm text-indigo-100">
+                    Esta é a soma de contatos, simpatizantes e fechados da sua área.
+                  </p>
                 </div>
-                {data.regiao_prioridade && data.regiao_prioridade !== "normal" && (
-                  <span className={`text-xs px-2 py-1 rounded-full font-semibold ${data.regiao_prioridade === "prioritaria" ? "bg-red-400 text-white" : "bg-yellow-400 text-yellow-900"}`}>
-                    {data.regiao_prioridade === "prioritaria" ? "⚡ Prioritária" : "⚠️ Atenção"}
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-4 mt-3 text-sm">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-                  <span>{data.total_simpatizantes} simpatizantes</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-                  <span>{data.total_fechados} fechados</span>
+                <div className="grid grid-cols-3 gap-3 sm:min-w-[360px]">
+                  <div className="rounded-2xl bg-white/12 p-4 backdrop-blur">
+                    <p className="text-3xl font-black text-slate-100">{totalContatosAbertos}</p>
+                    <p className="mt-1 text-sm text-indigo-100">Contatos</p>
+                  </div>
+                  <div className="rounded-2xl bg-white/12 p-4 backdrop-blur">
+                    <p className="text-3xl font-black text-yellow-300">{data.total_simpatizantes}</p>
+                    <p className="mt-1 text-sm text-indigo-100">Simpatizantes</p>
+                  </div>
+                  <div className="rounded-2xl bg-white/12 p-4 backdrop-blur">
+                    <p className="text-3xl font-black text-emerald-300">{data.total_fechados}</p>
+                    <p className="mt-1 text-sm text-indigo-100">Fechados</p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <div className="bg-indigo-50 rounded-2xl p-4 text-center">
-                <p className="text-3xl font-bold text-indigo-600">{data.total_lideres}</p>
-                <p className="text-xs text-gray-600 mt-1">Líderes ativos</p>
-              </div>
-              <div className="bg-green-50 rounded-2xl p-4 text-center">
-                <p className="text-3xl font-bold text-green-600">{data.total_fechados}</p>
-                <p className="text-xs text-gray-600 mt-1">Votos fechados</p>
-              </div>
-            </div>
+            <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <button
+                onClick={() => navigate("/usuarios?novo=lider")}
+                className="rounded-2xl bg-indigo-600 px-5 py-4 text-left text-white shadow transition-transform active:scale-[0.98]"
+              >
+                <p className="text-lg font-bold">Cadastrar líder</p>
+                <p className="mt-1 text-sm text-indigo-100">Incluir um novo líder para a sua equipe.</p>
+              </button>
 
-            {/* Ações rápidas */}
-            <div className="grid grid-cols-2 gap-3 mb-5">
               <button
                 onClick={() => navigate("/contatos")}
-                className="bg-indigo-600 text-white rounded-2xl p-4 text-center font-semibold text-sm shadow active:scale-95 transition-transform"
+                className="rounded-2xl bg-white px-5 py-4 text-left shadow-sm ring-1 ring-slate-200 transition-transform active:scale-[0.98]"
               >
-                👥 Ver Contatos
+                <p className="text-lg font-bold text-slate-900">Ver contatos</p>
+                <p className="mt-1 text-sm text-slate-500">Acompanhar as pessoas do seu time.</p>
               </button>
+
               <button
-                onClick={() => navigate("/regioes")}
-                className="bg-white border border-gray-200 text-gray-700 rounded-2xl p-4 text-center font-semibold text-sm shadow-sm active:scale-95 transition-transform"
+                onClick={() => navigate(data.regiao_id ? `/regioes/${data.regiao_id}` : "/regioes")}
+                className="rounded-2xl bg-white px-5 py-4 text-left shadow-sm ring-1 ring-slate-200 transition-transform active:scale-[0.98]"
               >
-                📍 Minha Região
+                <p className="text-lg font-bold text-slate-900">Meu bairro</p>
+                <p className="mt-1 text-sm text-slate-500">Abrir o detalhe completo do seu bairro.</p>
               </button>
             </div>
 
-            {/* Ranking Líderes */}
+            <div className="mb-5 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl bg-indigo-50 p-5 shadow-sm ring-1 ring-indigo-100">
+                <p className="text-4xl font-black text-indigo-600">{data.total_lideres}</p>
+                <p className="mt-2 text-sm font-semibold text-slate-700">Líderes ativos</p>
+                <p className="mt-1 text-xs text-slate-500">Pessoas da equipe atuando no bairro.</p>
+              </div>
+              <div className="rounded-2xl bg-emerald-50 p-5 shadow-sm ring-1 ring-emerald-100">
+                <p className="text-4xl font-black text-emerald-600">{data.total_fechados}</p>
+                <p className="mt-2 text-sm font-semibold text-slate-700">Votos fechados</p>
+                <p className="mt-1 text-xs text-slate-500">Quem já declarou apoio com firmeza.</p>
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <ConversionThermometer
+                title="Fechados do meu bairro"
+                percent={taxaFechados}
+                ratioText={`${data.total_fechados} de ${data.total_base} fechados`}
+                onAction={() =>
+                  navigate(
+                    data.regiao_id
+                      ? `/contatos?nivel=simpatizante&regiao_id=${data.regiao_id}`
+                      : "/contatos?nivel=simpatizante",
+                  )
+                }
+              />
+            </div>
+
             {data.ranking_lideres.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-700 mb-3">🏆 Meus Líderes</h2>
-                <div className="space-y-2">
-                  {data.ranking_lideres.map((l, i) => (
-                    <div key={l.lider_id ?? i} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? "bg-yellow-400 text-yellow-900" : "bg-gray-200 text-gray-600"}`}>{i + 1}</span>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-800">{l.lider_nome || "—"}</p>
-                        <div className="flex gap-2 text-xs text-gray-500">
-                          <span>🟡 {l.simpatizantes}</span>
-                          <span>🟢 {l.fechados}</span>
-                        </div>
-                      </div>
-                      <span className="text-lg font-bold text-indigo-600">{l.total}</span>
-                    </div>
-                  ))}
+              <section className="mb-5 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">Meus líderes</h2>
+                    <p className="text-sm text-slate-500">Quem mais movimenta a base da sua equipe.</p>
+                  </div>
+                  <button
+                    onClick={() => navigate("/usuarios")}
+                    className="text-sm font-semibold text-indigo-600"
+                  >
+                    Ver equipe
+                  </button>
                 </div>
-              </div>
-            )}
 
-            {/* Últimas movimentações */}
-            {data.ultimas_movimentacoes.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-gray-700">🕐 Últimas Movimentações</h2>
-                  <button onClick={() => navigate("/contatos")} className="text-xs text-blue-600">Ver todos →</button>
-                </div>
-                <div className="space-y-2">
-                  {data.ultimas_movimentacoes.map((c) => {
-                    const cfg = nivelConfig[c.nivel] || nivelConfig.contato;
-                    return (
-                      <div key={c.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                        <div>
-                          <p className="text-sm font-medium text-gray-800">{c.nome}</p>
-                          <p className="text-xs text-gray-400">{c.lider_nome && `Líder: ${c.lider_nome}`} {c.bairro && `• ${c.bairro}`}</p>
-                        </div>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
+                <div className="space-y-3">
+                  {data.ranking_lideres.map((lider, index) => (
+                    <div
+                      key={lider.lider_id ?? index}
+                      className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3"
+                    >
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-black ${
+                          index === 0 ? "bg-amber-200 text-amber-900" : "bg-slate-200 text-slate-600"
+                        }`}
+                      >
+                        {index + 1}
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Próximos Eventos */}
-            {data.proximos_eventos.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-gray-700">📅 Próximos Eventos</h2>
-                  <button onClick={() => navigate("/agenda")} className="text-xs text-blue-600">Ver →</button>
-                </div>
-                <div className="space-y-2">
-                  {data.proximos_eventos.map((e) => (
-                    <div key={e.id} className="flex gap-3 items-start p-3 bg-indigo-50 rounded-xl">
-                      <div className="bg-indigo-100 rounded-lg p-1.5 min-w-[40px] text-center">
-                        <p className="text-xs text-indigo-700 font-bold">{new Date(e.data + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-base font-bold text-slate-900">
+                          {lider.lider_nome || "Líder sem nome"}
+                        </p>
+                        <p className="text-sm text-slate-500">
+                          {Math.max(0, lider.total - lider.simpatizantes - lider.fechados)} contatos, {lider.simpatizantes} simpatizantes, {lider.fechados} fechados
+                        </p>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">{e.titulo}</p>
-                        {e.hora && <p className="text-xs text-gray-500">{e.hora.slice(0,5)} {e.local && `• ${e.local}`}</p>}
+                      <div className="text-right">
+                        <p className="text-3xl font-black text-indigo-600">{lider.total}</p>
+                        <p className="text-xs text-slate-400">pessoas</p>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              </section>
             )}
+
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+              {data.ultimas_movimentacoes.length > 0 && (
+                <section className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900">Últimas movimentações</h2>
+                      <p className="text-sm text-slate-500">Cadastros recentes e andamento da base.</p>
+                    </div>
+                    <button
+                      onClick={() => navigate("/contatos")}
+                      className="text-sm font-semibold text-indigo-600"
+                    >
+                      Ver tudo
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {data.ultimas_movimentacoes.map((contato) => {
+                      const cfg = nivelConfig[contato.nivel] || nivelConfig.contato;
+                      return (
+                        <div
+                          key={contato.id}
+                          className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-base font-semibold text-slate-900">{contato.nome}</p>
+                            <p className="text-sm text-slate-500">
+                              {contato.lider_nome ? `Líder: ${contato.lider_nome}` : "Sem líder informado"}
+                              {contato.bairro ? ` • ${contato.bairro}` : ""}
+                            </p>
+                          </div>
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${cfg.bg} ${cfg.color}`}
+                          >
+                            {cfg.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {data.proximos_eventos.length > 0 && (
+                <section className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900">Próximos eventos</h2>
+                      <p className="text-sm text-slate-500">Compromissos do bairro nos próximos dias.</p>
+                    </div>
+                    <button
+                      onClick={() => navigate("/agenda")}
+                      className="text-sm font-semibold text-indigo-600"
+                    >
+                      Ver agenda
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {data.proximos_eventos.map((evento) => (
+                      <div key={evento.id} className="rounded-2xl bg-indigo-50 p-4">
+                        <div className="flex gap-3">
+                          <div className="min-w-[54px] rounded-xl bg-white px-2 py-2 text-center shadow-sm">
+                            <p className="text-xs font-black uppercase text-indigo-700">
+                              {new Date(`${evento.data}T12:00:00`).toLocaleDateString("pt-BR", {
+                                day: "2-digit",
+                                month: "short",
+                              })}
+                            </p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-base font-bold text-slate-900">{evento.titulo}</p>
+                            <p className="text-sm text-slate-500">
+                              {evento.hora ? evento.hora.slice(0, 5) : "Horário a definir"}
+                              {evento.local ? ` • ${evento.local}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
           </>
         )}
       </div>

@@ -114,7 +114,7 @@ router.get("/dashboard/vereador", async (req, res): Promise<void> => {
   const porCoordenador = await db.select({
     coordenador_id: contatosTable.coordenador_id,
     coordenador_nome: sql<string | null>`coord.nome`,
-    regiao_nome: sql<string | null>`r.nome`,
+    regiao_nome: sql<string | null>`min(r.nome)`,
     total: sql<number>`count(*)::int`,
     simpatizantes: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'simpatizante')::int`,
     fechados: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'fechado')::int`,
@@ -122,8 +122,8 @@ router.get("/dashboard/vereador", async (req, res): Promise<void> => {
   })
   .from(contatosTable)
   .leftJoin(sql`usuarios coord`, sql`coord.id = ${contatosTable.coordenador_id}`)
-  .leftJoin(sql`regioes r`, sql`r.coordenador_regional_id = ${contatosTable.coordenador_id}`)
-  .groupBy(contatosTable.coordenador_id, sql`coord.nome`, sql`r.nome`)
+  .leftJoin(sql`regioes r`, sql`r.id = coord.regiao_id`)
+  .groupBy(contatosTable.coordenador_id, sql`coord.nome`)
   .orderBy(sql`count(*) desc`);
 
   const porRegiao = await db.select({
@@ -145,13 +145,15 @@ router.get("/dashboard/vereador", async (req, res): Promise<void> => {
   const rankingLideres = await db.select({
     lider_id: contatosTable.lider_id,
     lider_nome: sql<string | null>`lider.nome`,
+    coordenador_nome: sql<string | null>`coord.nome`,
     total: sql<number>`count(*)::int`,
     simpatizantes: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'simpatizante')::int`,
     fechados: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'fechado')::int`,
   })
   .from(contatosTable)
   .leftJoin(sql`usuarios lider`, sql`lider.id = ${contatosTable.lider_id}`)
-  .groupBy(contatosTable.lider_id, sql`lider.nome`)
+  .leftJoin(sql`usuarios coord`, sql`coord.id = ${contatosTable.coordenador_id}`)
+  .groupBy(contatosTable.lider_id, sql`lider.nome`, sql`coord.nome`)
   .orderBy(sql`count(*) desc`)
   .limit(10);
 
@@ -220,7 +222,7 @@ router.get("/dashboard/coordenador-geral", async (req, res): Promise<void> => {
   const porCoordenador = await db.select({
     coordenador_id: contatosTable.coordenador_id,
     coordenador_nome: sql<string | null>`coord.nome`,
-    regiao_nome: sql<string | null>`r.nome`,
+    regiao_nome: sql<string | null>`min(r.nome)`,
     total: sql<number>`count(*)::int`,
     simpatizantes: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'simpatizante')::int`,
     fechados: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'fechado')::int`,
@@ -228,8 +230,8 @@ router.get("/dashboard/coordenador-geral", async (req, res): Promise<void> => {
   })
   .from(contatosTable)
   .leftJoin(sql`usuarios coord`, sql`coord.id = ${contatosTable.coordenador_id}`)
-  .leftJoin(sql`regioes r`, sql`r.coordenador_regional_id = ${contatosTable.coordenador_id}`)
-  .groupBy(contatosTable.coordenador_id, sql`coord.nome`, sql`r.nome`)
+  .leftJoin(sql`regioes r`, sql`r.id = coord.regiao_id`)
+  .groupBy(contatosTable.coordenador_id, sql`coord.nome`)
   .orderBy(sql`count(*) desc`);
 
   const porRegiao = await db.select({
@@ -251,13 +253,15 @@ router.get("/dashboard/coordenador-geral", async (req, res): Promise<void> => {
   const rankingLideres = await db.select({
     lider_id: contatosTable.lider_id,
     lider_nome: sql<string | null>`lider.nome`,
+    coordenador_nome: sql<string | null>`coord.nome`,
     total: sql<number>`count(*)::int`,
     simpatizantes: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'simpatizante')::int`,
     fechados: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'fechado')::int`,
   })
   .from(contatosTable)
   .leftJoin(sql`usuarios lider`, sql`lider.id = ${contatosTable.lider_id}`)
-  .groupBy(contatosTable.lider_id, sql`lider.nome`)
+  .leftJoin(sql`usuarios coord`, sql`coord.id = ${contatosTable.coordenador_id}`)
+  .groupBy(contatosTable.lider_id, sql`lider.nome`, sql`coord.nome`)
   .orderBy(sql`count(*) desc`)
   .limit(10);
 
@@ -317,14 +321,16 @@ router.get("/dashboard/coordenador-regional", async (req, res): Promise<void> =>
   const rankingLideres = await db.select({
     lider_id: contatosTable.lider_id,
     lider_nome: sql<string | null>`lider.nome`,
+    coordenador_nome: sql<string | null>`coord.nome`,
     total: sql<number>`count(*)::int`,
     simpatizantes: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'simpatizante')::int`,
     fechados: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'fechado')::int`,
   })
   .from(contatosTable)
   .leftJoin(sql`usuarios lider`, sql`lider.id = ${contatosTable.lider_id}`)
+  .leftJoin(sql`usuarios coord`, sql`coord.id = ${contatosTable.coordenador_id}`)
   .where(eq(contatosTable.coordenador_id, usuario.id))
-  .groupBy(contatosTable.lider_id, sql`lider.nome`)
+  .groupBy(contatosTable.lider_id, sql`lider.nome`, sql`coord.nome`)
   .orderBy(sql`count(*) desc`);
 
   let regiao_nome: string | null = null;
@@ -366,6 +372,7 @@ router.get("/dashboard/coordenador-regional", async (req, res): Promise<void> =>
     total_simpatizantes: totals?.total_simpatizantes || 0,
     total_fechados: totals?.total_fechados || 0,
     total_lideres: liderCount?.total || 0,
+    regiao_id: usuario.regiao_id || null,
     regiao_nome,
     regiao_prioridade,
     ranking_lideres: rankingLideres,

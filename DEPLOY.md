@@ -18,7 +18,7 @@ Antes do deploy, confirme:
 
 ### API
 
-Use como base [artifacts/api-server/.env.example](C:/Users/jose_/Downloads/Eleitoral-Hub/artifacts/api-server/.env.example):
+Use como base `artifacts/api-server/.env.example`:
 
 ```env
 PORT=8787
@@ -29,7 +29,7 @@ LOG_LEVEL=info
 
 ### Frontend
 
-Use como base [artifacts/campanha/.env.example](C:/Users/jose_/Downloads/Eleitoral-Hub/artifacts/campanha/.env.example):
+Use como base `artifacts/campanha/.env.example`:
 
 ```env
 PORT=5173
@@ -81,6 +81,6 @@ Você pode:
 
 ## Observações
 
-- O arquivo real de ambiente da API no projeto hoje está como `.env.env`; para produção vale padronizar para a convenção do seu servidor.
+- O arquivo real de ambiente da API no projeto hoje está como `.env.env`; em produção vale padronizar conforme o seu servidor.
 - Se usar proxy reverso, preserve o caminho `/campanha/` no frontend.
 - Para funcionar como PWA instalável no celular, publique o frontend em `HTTPS`. No iPhone, a instalação costuma ser feita por `Compartilhar -> Adicionar à Tela de Início`.

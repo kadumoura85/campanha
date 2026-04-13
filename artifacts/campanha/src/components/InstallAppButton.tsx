@@ -10,7 +10,8 @@ export default function InstallAppButton({
   variant = "light",
   compact = false,
 }: InstallAppButtonProps) {
-  const { canPromptInstall, isIos, isInstalled, promptInstall } = usePwaInstall();
+  const { canPromptInstall, isIos, isIosSafari, isInstalled, promptInstall } =
+    usePwaInstall();
   const [showIosHelp, setShowIosHelp] = useState(false);
 
   if (isInstalled) return null;
@@ -34,7 +35,7 @@ export default function InstallAppButton({
           }}
           className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${buttonClass} ${compact ? "" : "w-full"}`}
         >
-          Instalar app
+          {compact ? "Instalar" : "Instalar app"}
         </button>
       ) : (
         <>
@@ -43,12 +44,21 @@ export default function InstallAppButton({
             onClick={() => setShowIosHelp((current) => !current)}
             className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${buttonClass} ${compact ? "" : "w-full"}`}
           >
-            Como instalar no iPhone
+            {compact ? "iPhone" : "Como instalar no iPhone"}
           </button>
           {showIosHelp && (
             <div className={`mt-2 rounded-2xl border px-4 py-3 text-sm ${helpClass}`}>
-              No Safari, toque em <span className="font-semibold">Compartilhar</span> e depois em{" "}
-              <span className="font-semibold">Adicionar à Tela de Início</span>.
+              {isIosSafari ? (
+                <>
+                  No Safari, toque em <span className="font-semibold">Compartilhar</span> e depois em{" "}
+                  <span className="font-semibold">Adicionar a Tela de Inicio</span>.
+                </>
+              ) : (
+                <>
+                  Para instalar no iPhone, abra este sistema no <span className="font-semibold">Safari</span> e use{" "}
+                  <span className="font-semibold">Compartilhar &gt; Adicionar a Tela de Inicio</span>.
+                </>
+              )}
             </div>
           )}
         </>

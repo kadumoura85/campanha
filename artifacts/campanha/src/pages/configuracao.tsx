@@ -164,8 +164,24 @@ export default function ConfiguracaoPage() {
   const { usuario } = useAuth();
   const { refresh: refreshCampanha } = useCampanha();
 
-  const canEdit = ["super_admin", "vereador", "coordenador_geral"].includes(usuario?.tipo || "");
+  const canAccessPage = usuario?.tipo === "coordenador_geral";
+  const canEdit = canAccessPage;
   const campaignName = getCampaignDisplayName(form.nome_candidato);
+
+  if (!canAccessPage) {
+    return (
+      <Layout>
+        <div className="p-4 max-w-lg mx-auto">
+          <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm text-center">
+            <h1 className="text-xl font-bold text-gray-900">Configuração indisponível</h1>
+            <p className="text-sm text-gray-500 mt-2">
+              Esta área está disponível apenas para o coordenador geral.
+            </p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   useEffect(() => {
     apiGet<Configuracao>("/api/configuracao")

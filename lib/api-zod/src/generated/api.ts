@@ -484,9 +484,18 @@ export const UpdateEventoBody = zod.object({
   data: zod.string().nullish(),
   hora: zod.string().nullish(),
   local: zod.string().nullish(),
-  tipo_evento: zod.string().nullish(),
+  tipo_evento: zod
+    .enum([
+      "reuniao",
+      "caminhada",
+      "visita",
+      "comicio",
+      "acao_de_rua",
+      "evento_interno",
+    ])
+    .nullish(),
   regiao_id: zod.number().nullish(),
-  visibilidade: zod.string().nullish(),
+  visibilidade: zod.enum(["geral", "regional", "lider"]).nullish(),
 });
 
 export const UpdateEventoResponse = zod.object({

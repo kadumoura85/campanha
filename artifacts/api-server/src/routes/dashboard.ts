@@ -447,11 +447,21 @@ router.get("/evolucao-semanal", async (req, res): Promise<void> => {
     fim.setDate(fim.getDate() - i * 7);
 
     const label = `Sem ${6 - i}`;
-    const [data] = await db.select({
+    let query = db.select({
       contatos: sql<number>`count(*)::int`,
       simpatizantes: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'simpatizante')::int`,
       fechados: sql<number>`count(*) filter (where ${contatosTable.nivel} = 'fechado')::int`,
-    }).from(contatosTable).where(and(gte(contatosTable.created_at, inicio), lt(contatosTable.created_at, fim)));
+    }).from(contatosTable).$dynamic();
+
+    const conditions = [gte(contatosTable.created_at, inicio), lt(contatosTable.created_at, fim)];
+
+    if (usuario.tipo === "lider") {
+      conditions.push(eq(contatosTable.lider_id, usuario.id));
+    } else if (usuario.tipo === "coordenador_regional") {
+      conditions.push(eq(contatosTable.coordenador_id, usuario.id));
+    }
+
+    const [data] = await query.where(and(...conditions));
 
     semanas.push({ semana: label, contatos: data?.contatos || 0, simpatizantes: data?.simpatizantes || 0, fechados: data?.fechados || 0 });
   }

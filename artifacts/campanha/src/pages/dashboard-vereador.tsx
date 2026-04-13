@@ -1,13 +1,16 @@
 ﻿import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy } from "react";
 import { useLocation } from "wouter";
 import { AnimatePresence, Reorder, motion, useDragControls } from "framer-motion";
-import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import CampanhaAvatar from "@/components/CampanhaAvatar";
 import Layout from "@/components/Layout";
 import { apiGet } from "@/lib/api";
 import { useCampanha } from "@/contexts/CampanhaContext";
 import { getCampaignDisplayName } from "@/lib/campanha";
 import { getPrioridadeConfig } from "@/lib/prioridade";
+
+const BaseDistribuicaoChart = lazy(() => import("@/components/BaseDistribuicaoChart"));
+const CoordenadoresComparativoChart = lazy(() => import("@/components/CoordenadoresComparativoChart"));
 
 interface StatsCoordenador {
   coordenador_id: number | null;
@@ -105,6 +108,17 @@ function saveOrder(order: BlockId[]) {
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm ${className}`}>{children}</div>;
+}
+
+function ChartLoadingBox({ height = 220 }: { height?: number }) {
+  return (
+    <div
+      className="flex items-center justify-center rounded-2xl bg-gray-50 text-xs font-medium text-gray-400"
+      style={{ height }}
+    >
+      Carregando grafico...
+    </div>
+  );
 }
 
 function ResumoCard({
@@ -390,14 +404,9 @@ export default function DashboardVereadorPage() {
             <p className="text-xs text-gray-500 mt-1 mb-4">Distribuição da base de apoio.</p>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Distribuição da base</p>
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie data={visualOverview.distribuicao} dataKey="value" innerRadius={52} outerRadius={78} paddingAngle={3}>
-                    {visualOverview.distribuicao.map((item) => <Cell key={item.name} fill={item.color} />)}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => [`${value} pessoas`, ""]} />
-                </PieChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<ChartLoadingBox />}>
+                <BaseDistribuicaoChart data={visualOverview.distribuicao} />
+              </Suspense>
               <div className="space-y-2 mt-2">
                 {visualOverview.distribuicao.map((item) => (
                   <div key={item.name} className="flex items-center gap-2 text-sm text-gray-600">
@@ -445,15 +454,9 @@ export default function DashboardVereadorPage() {
             </div>
             <button onClick={() => navigate("/usuarios")} className="text-xs font-semibold text-blue-700">Ver equipe</button>
           </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={visualOverview.coordenadores} margin={{ top: 10, right: 8, left: -20, bottom: 0 }}>
-              <XAxis dataKey="nome" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip />
-              <Bar dataKey="total" fill={primary} radius={[8, 8, 0, 0]} />
-              <Bar dataKey="fechados" fill="#10b981" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<ChartLoadingBox height={260} />}>
+            <CoordenadoresComparativoChart data={visualOverview.coordenadores} primary={primary} />
+          </Suspense>
         </Card>
       );
     }
@@ -624,7 +627,9 @@ export default function DashboardVereadorPage() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold text-gray-900">Resumo executivo</p>
-                  <p className="text-xs text-gray-500 mt-1">Hoje a campanha tem {data.total_contatos} pessoas, {data.total_fechados} fechados e {data.total_regioes} bairros em acompanhamento.</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Hoje a campanha tem {data.total_contatos} pessoas: {resumoExecutivo.contatosAbertos} contatos, {data.total_simpatizantes} simpatizantes e {data.total_fechados} fechados, em {data.total_regioes} bairros.
+                  </p>
                 </div>
                 </div>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">

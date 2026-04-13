@@ -38,6 +38,14 @@ const VISIBILIDADE_LABELS: Record<string, string> = {
   lider: "Líderes",
 };
 
+const TIPO_EVENTO_DESCONHECIDO = {
+  label: "Tipo invalido",
+  emoji: "!",
+  color: "bg-amber-100 text-amber-700",
+};
+
+const VISIBILIDADE_DESCONHECIDA = "Visibilidade invalida";
+
 const TIPOS_EVENTO = Object.entries(tipoEventoConfig).map(([k, v]) => ({ value: k, label: v.label }));
 
 const emptyForm = () => ({
@@ -65,11 +73,23 @@ export default function AgendaPage() {
   const [form, setForm] = useState(emptyForm());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [integrityWarning, setIntegrityWarning] = useState("");
 
   const load = () => {
     setLoading(true);
     apiGet<Evento[]>("/api/eventos")
-      .then(setEventos)
+      .then((data) => {
+        const invalidCount = data.filter(
+          (evento) => !tipoEventoConfig[evento.tipo_evento] || !VISIBILIDADE_LABELS[evento.visibilidade],
+        ).length;
+
+        setEventos(data);
+        setIntegrityWarning(
+          invalidCount > 0
+            ? `${invalidCount} evento(s) tem valor de tipo ou visibilidade fora do padrao e precisam de correcao.`
+            : "",
+        );
+      })
       .finally(() => setLoading(false));
   };
 
@@ -165,6 +185,12 @@ export default function AgendaPage() {
             </button>
           )}
         </div>
+
+        {integrityWarning && (
+          <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {integrityWarning}
+          </div>
+        )}
 
         {showForm && (
           <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-blue-100">
@@ -349,7 +375,8 @@ function EventoCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const cfg = tipoEventoConfig[evento.tipo_evento] || tipoEventoConfig.reuniao;
+  const cfg = tipoEventoConfig[evento.tipo_evento] || TIPO_EVENTO_DESCONHECIDO;
+  const visibilidadeLabel = VISIBILIDADE_LABELS[evento.visibilidade] || VISIBILIDADE_DESCONHECIDA;
   const dateObj = new Date(`${evento.data}T12:00:00`);
   const [expanded, setExpanded] = useState(false);
 
@@ -371,7 +398,7 @@ function EventoCard({
             {evento.hora && <p className="text-xs text-gray-500 mt-0.5">🕐 {evento.hora.slice(0, 5)}</p>}
             {evento.local && <p className="text-xs text-gray-500">📍 {evento.local}</p>}
             {evento.regiao_nome && <p className="text-xs text-gray-400">🗺️ {evento.regiao_nome}</p>}
-            <p className="text-xs text-gray-400 mt-1">{VISIBILIDADE_LABELS[evento.visibilidade]}</p>
+            <p className="text-xs text-gray-400 mt-1">{visibilidadeLabel}</p>
           </div>
         </div>
       </div>

@@ -1,43 +1,57 @@
 # Deploy
 
-## Visão geral
+## Caminho recomendado
 
-O sistema tem 2 partes:
+Para este projeto, o caminho mais simples e mais adequado para celular e:
 
-- `artifacts/api-server`: API Express
-- `artifacts/campanha`: frontend Vite
+- frontend em `Vercel`
+- API + PostgreSQL em `Railway` ou `Render`
 
-Antes do deploy, confirme:
+Para uso em telefone, prefira esta estrutura:
 
-- PostgreSQL acessível
-- `DATABASE_URL` válida
-- `JWT_SECRET` forte
-- pasta `uploads/` preservada no servidor
+- frontend em `https://app.seu-dominio.com/`
+- API em `https://api.seu-dominio.com/`
 
-## Variáveis de ambiente
+Isso reduz atrito no PWA, simplifica links e melhora a instalacao no iPhone.
+
+## Estrutura do projeto
+
+- `artifacts/campanha`: frontend
+- `artifacts/api-server`: API
+- `lib/db`: banco e schemas compartilhados
+
+## Variaveis de ambiente
 
 ### API
 
-Use como base `artifacts/api-server/.env.example`:
+Use como base `artifacts/api-server/.env.production.example`:
 
 ```env
 PORT=8787
 DATABASE_URL=postgresql://usuario:senha@host:5432/banco
 JWT_SECRET=troque-esta-chave-em-producao
 LOG_LEVEL=info
+CORS_ORIGIN=https://app.seu-dominio.com
 ```
+
+`CORS_ORIGIN` aceita uma ou mais origens separadas por virgula.
 
 ### Frontend
 
-Use como base `artifacts/campanha/.env.example`:
+Use como base `artifacts/campanha/.env.production.example`:
 
 ```env
-PORT=5173
-BASE_PATH=/campanha/
-API_TARGET=http://127.0.0.1:8787
+BASE_PATH=/
+VITE_API_BASE_URL=https://api.seu-dominio.com
 ```
 
-## Build
+Em producao, o mais importante para o navegador e:
+
+- `VITE_API_BASE_URL`
+
+Esse valor deve apontar para a URL publica da API.
+
+## Build local para conferencia
 
 Na raiz:
 
@@ -48,39 +62,84 @@ pnpm -C artifacts/api-server run build
 pnpm -C artifacts/campanha run build
 ```
 
-## Subida em produção
+## Publicando a API
 
-### API
+### Railway ou Render
+
+Use estes comandos:
+
+- build:
 
 ```powershell
-$env:PORT='8787'
-$env:DATABASE_URL='postgresql://usuario:senha@host:5432/banco'
-$env:JWT_SECRET='uma-chave-forte'
+pnpm install
+pnpm -C artifacts/api-server run build
+```
+
+- start:
+
+```powershell
 pnpm -C artifacts/api-server run start
 ```
 
-### Frontend
+Configure as variaveis:
 
-O frontend gera arquivos estáticos em `artifacts/campanha/dist`.
+- `PORT`
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `LOG_LEVEL`
+- `CORS_ORIGIN`
 
-Você pode:
+Importante:
 
-- servir esse diretório por Nginx, Apache ou IIS
-- manter o `BASE_PATH=/campanha/`
-- apontar `/api` para a API
-- apontar `/uploads` para a API ou para o mesmo storage compartilhado
+- preserve a pasta `uploads/` ou use storage persistente
+- confirme que o PostgreSQL esta acessivel pela `DATABASE_URL`
+- configure `CORS_ORIGIN=https://app.seu-dominio.com`
+
+## Publicando o frontend
+
+### Vercel
+
+O projeto ja tem `artifacts/campanha/vercel.json`.
+
+Na Vercel:
+
+1. importe o repositorio
+2. defina o diretorio raiz como `artifacts/campanha`
+3. configure as variaveis:
+   - `BASE_PATH=/`
+   - `VITE_API_BASE_URL=https://api.seu-dominio.com`
+4. faca o deploy
+5. vincule um dominio HTTPS, por exemplo `app.seu-dominio.com`
+
+## PWA
+
+O frontend ja esta preparado como PWA.
+
+Para funcionar como app instalavel:
+
+- publique em `HTTPS`
+- mantenha `manifest.webmanifest`
+- mantenha `sw.js`
+- prefira publicar o frontend em `/`
+- no iPhone, abra no `Safari`
+
+No iPhone, a instalacao costuma ser feita por:
+
+- `Compartilhar -> Adicionar a Tela de Inicio`
 
 ## Checklist final
 
-- `GET /api/auth/me` responde `401` sem token
-- login responde `200`
+- login responde normalmente
 - dashboards carregam por perfil
 - tela `Bairros` abre
-- upload de foto e santinho funciona
-- `uploads/` continua disponível após reinício
+- uploads funcionam
+- santinho baixa corretamente
+- `GET /api/auth/me` responde `401` sem token
+- frontend consegue falar com a API publica
+- `Adicionar a Tela de Inicio` funciona no iPhone
+- voltar de offline para online nao recarrega a tela no meio do uso
 
-## Observações
+## Observacoes
 
-- O arquivo real de ambiente da API no projeto hoje está como `.env.env`; em produção vale padronizar conforme o seu servidor.
-- Se usar proxy reverso, preserve o caminho `/campanha/` no frontend.
-- Para funcionar como PWA instalável no celular, publique o frontend em `HTTPS`. No iPhone, a instalação costuma ser feita por `Compartilhar -> Adicionar à Tela de Início`.
+- o arquivo local da API no projeto ainda usa `.env.env`; em producao vale padronizar conforme o servidor
+- se quiser simplificar a URL publica, publique o frontend em `/` em vez de `/campanha/`

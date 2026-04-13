@@ -48,6 +48,56 @@ const contatoSelect = {
   regiao_nome: sql<string | null>`r.nome`,
 };
 
+function normalizePhone(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+async function findContatoByNormalizedPhone(phone: string, excludeId?: number) {
+  const normalizedPhone = normalizePhone(phone);
+
+  if (!normalizedPhone) return null;
+
+  const conditions = [
+    sql`regexp_replace(${contatosTable.telefone}, '\\D', '', 'g') = ${normalizedPhone}`,
+  ];
+
+  if (excludeId !== undefined) {
+    conditions.push(sql`${contatosTable.id} <> ${excludeId}`);
+  }
+
+  const query = db
+    .select({
+      id: contatosTable.id,
+      nome: contatosTable.nome,
+      telefone: contatosTable.telefone,
+      lider_id: contatosTable.lider_id,
+      lider_nome: sql<string | null>`lider.nome`,
+    })
+    .from(contatosTable)
+    .leftJoin(sql`usuarios lider`, sql`lider.id = ${contatosTable.lider_id}`)
+    .where(and(...conditions))
+    .limit(1);
+
+  const [existing] = await query;
+  return existing || null;
+}
+
+function getDuplicateContatoError(existing: {
+  nome: string;
+  lider_id: number | null;
+  lider_nome: string | null;
+}, usuarioTipo: string) {
+  if (existing.lider_id && usuarioTipo === "lider") {
+    if (existing.lider_nome) {
+      return `Esta pessoa ja esta cadastrada na base do lider ${existing.lider_nome}.`;
+    }
+
+    return "Esta pessoa ja esta cadastrada na base de outro lider.";
+  }
+
+  return `Ja existe uma pessoa cadastrada com este telefone${existing.nome ? `: ${existing.nome}` : ""}.`;
+}
+
 router.get("/contatos", async (req, res): Promise<void> => {
   const usuario = await getUsuarioFromRequest(req);
   if (!usuario) {
@@ -102,13 +152,10 @@ router.post("/contatos", async (req, res): Promise<void> => {
     return;
   }
 
-  const [existing] = await db
-    .select({ id: contatosTable.id })
-    .from(contatosTable)
-    .where(eq(contatosTable.telefone, parsed.data.telefone));
+  const existing = await findContatoByNormalizedPhone(parsed.data.telefone);
 
   if (existing) {
-    res.status(400).json({ error: "Telefone ja cadastrado" });
+    res.status(400).json({ error: getDuplicateContatoError(existing, usuario.tipo) });
     return;
   }
 
@@ -203,14 +250,14 @@ router.patch("/contatos/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  if (parsed.data.telefone && parsed.data.telefone !== existing.telefone) {
-    const [duplicate] = await db
-      .select({ id: contatosTable.id })
-      .from(contatosTable)
-      .where(eq(contatosTable.telefone, parsed.data.telefone));
+  if (
+    parsed.data.telefone &&
+    normalizePhone(parsed.data.telefone) !== normalizePhone(existing.telefone)
+  ) {
+    const duplicate = await findContatoByNormalizedPhone(parsed.data.telefone, existing.id);
 
     if (duplicate) {
-      res.status(400).json({ error: "Telefone ja cadastrado" });
+      res.status(400).json({ error: getDuplicateContatoError(duplicate, usuario.tipo) });
       return;
     }
   }

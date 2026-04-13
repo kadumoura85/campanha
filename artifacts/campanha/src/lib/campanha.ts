@@ -1,6 +1,7 @@
 import type { CampanhaConfig } from "@/contexts/CampanhaContext";
 
 const FALLBACK_NAME = "Sua campanha";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "";
 
 function normalizeText(value: string | null | undefined) {
   const text = value?.trim();
@@ -43,6 +44,6 @@ export function getCampaignAssetUrl(asset: string | null | undefined) {
   const value = normalizeText(asset);
   if (!value) return null;
   if (/^https?:\/\//i.test(value) || value.startsWith("data:")) return value;
-  if (value.startsWith("/")) return value;
+  if (value.startsWith("/")) return API_BASE_URL ? `${API_BASE_URL}${value}` : value;
   return `/${value}`;
 }

@@ -5,6 +5,7 @@ import path from "path";
 import { z } from "zod";
 import { db, configuracaoCampanhaTable } from "@workspace/db";
 import { requireRoles, requireUsuario } from "./auth";
+import { uploadsRoot } from "../lib/paths";
 
 const router: IRouter = Router();
 
@@ -83,7 +84,7 @@ router.get("/config/public", async (_req, res): Promise<void> => {
 });
 
 router.get("/configuracao", async (req, res): Promise<void> => {
-  const usuario = await requireUsuario(req, res);
+  const usuario = await requireRoles(req, res, ["coordenador_geral"]);
   if (!usuario) return;
 
   const config = await getOrCreateConfig();
@@ -91,7 +92,7 @@ router.get("/configuracao", async (req, res): Promise<void> => {
 });
 
 router.patch("/configuracao", async (req, res): Promise<void> => {
-  const usuario = await requireRoles(req, res, ["super_admin", "vereador", "coordenador_geral"]);
+  const usuario = await requireRoles(req, res, ["coordenador_geral"]);
   if (!usuario) return;
 
   const parsed = updateConfiguracaoSchema.safeParse(req.body);
@@ -110,7 +111,7 @@ router.patch("/configuracao", async (req, res): Promise<void> => {
 });
 
 router.post("/configuracao/upload", async (req, res): Promise<void> => {
-  const usuario = await requireRoles(req, res, ["super_admin", "vereador", "coordenador_geral"]);
+  const usuario = await requireRoles(req, res, ["coordenador_geral"]);
   if (!usuario) return;
 
   const parsed = uploadSchema.safeParse(req.body);
@@ -177,7 +178,6 @@ async function persistImageUpload(
   const safeBaseName = slugify(path.parse(fileName).name || kind);
   const folder = uploadFolders[kind];
   const fileNameOnDisk = `${safeBaseName}-${Date.now()}${extension}`;
-  const uploadsRoot = path.resolve(process.cwd(), "uploads");
   const targetDir = path.join(uploadsRoot, folder);
   const targetPath = path.join(targetDir, fileNameOnDisk);
 

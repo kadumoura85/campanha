@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   getDeferredPrompt,
   isIosDevice,
+  isIosSafari,
   isStandalone,
   promptInstall,
   setDeferredPrompt,
@@ -40,6 +41,7 @@ export function usePwaInstall() {
     () => ({
       canPromptInstall: Boolean(getDeferredPrompt()) && !isStandalone(),
       isIos: isIosDevice(),
+      isIosSafari: isIosSafari(),
       isInstalled: isStandalone(),
       promptInstall,
       refreshKey: version,

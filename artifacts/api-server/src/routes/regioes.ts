@@ -17,8 +17,16 @@ type UsuarioPermitido = Awaited<ReturnType<typeof requireUsuario>>;
 function getRegionAccessCondition(usuario: UsuarioPermitido) {
   if (!usuario) return sql`1 = 0`;
 
-  if (["super_admin", "vereador", "coordenador_geral", "coordenador_regional"].includes(usuario.tipo)) {
+  if (["super_admin", "vereador", "coordenador_geral"].includes(usuario.tipo)) {
     return undefined;
+  }
+
+  if (usuario.tipo === "coordenador_regional") {
+    if (!usuario.regiao_id) {
+      return sql`1 = 0`;
+    }
+
+    return eq(regioesTable.id, usuario.regiao_id);
   }
 
   if (usuario.tipo === "lider") {
@@ -34,7 +42,8 @@ function getRegionAccessCondition(usuario: UsuarioPermitido) {
 
 function canAccessRegionById(usuario: UsuarioPermitido, regiaoId: number) {
   if (!usuario) return false;
-  if (["super_admin", "vereador", "coordenador_geral", "coordenador_regional"].includes(usuario.tipo)) return true;
+  if (["super_admin", "vereador", "coordenador_geral"].includes(usuario.tipo)) return true;
+  if (usuario.tipo === "coordenador_regional") return usuario.regiao_id === regiaoId;
   if (usuario.tipo === "lider") return usuario.regiao_id === regiaoId;
   return false;
 }
@@ -209,8 +218,39 @@ router.delete("/regioes/:id", async (req, res): Promise<void> => {
   if (!usuario) return;
 
   const id = Number(req.params["id"]);
-  await db.update(usuariosTable).set({ regiao_id: null }).where(eq(usuariosTable.regiao_id, id));
-  await db.update(contatosTable).set({ regiao_id: null }).where(eq(contatosTable.regiao_id, id));
+  const [coordenador] = await db
+    .select({ id: usuariosTable.id })
+    .from(usuariosTable)
+    .where(sql`${usuariosTable.regiao_id} = ${id} and ${usuariosTable.tipo} = 'coordenador_regional'`)
+    .limit(1);
+
+  if (coordenador) {
+    res.status(400).json({ error: "Reatribua ou exclua os coordenadores desta regiao antes de exclui-la" });
+    return;
+  }
+
+  const [lider] = await db
+    .select({ id: usuariosTable.id })
+    .from(usuariosTable)
+    .where(sql`${usuariosTable.regiao_id} = ${id} and ${usuariosTable.tipo} = 'lider'`)
+    .limit(1);
+
+  if (lider) {
+    res.status(400).json({ error: "Reatribua ou exclua os lideres desta regiao antes de exclui-la" });
+    return;
+  }
+
+  const [contato] = await db
+    .select({ id: contatosTable.id })
+    .from(contatosTable)
+    .where(eq(contatosTable.regiao_id, id))
+    .limit(1);
+
+  if (contato) {
+    res.status(400).json({ error: "Reatribua as pessoas desta regiao antes de exclui-la" });
+    return;
+  }
+
   await db.delete(observacoesRegiaoTable).where(eq(observacoesRegiaoTable.regiao_id, id));
   await db.delete(eventosTable).where(eq(eventosTable.regiao_id, id));
 

@@ -28,6 +28,9 @@ export default function RegioesPage() {
   const { usuario } = useAuth();
 
   const canCreate = ["super_admin", "vereador", "coordenador_geral"].includes(usuario?.tipo || "");
+  const isRegionalCoordinator = usuario?.tipo === "coordenador_regional";
+  const isLeader = usuario?.tipo === "lider";
+  const singleRegionMode = isRegionalCoordinator || isLeader;
 
   useEffect(() => {
     apiGet<RegiaoComStats[]>("/api/regioes")
@@ -62,8 +65,14 @@ export default function RegioesPage() {
       <div className="p-4 max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-5 gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Bairros</h1>
-            <p className="text-sm text-gray-500">{regioes.length} bairros em acompanhamento</p>
+            <h1 className="text-2xl font-bold text-gray-900">{singleRegionMode ? "Meu bairro" : "Bairros"}</h1>
+            <p className="text-sm text-gray-500">
+              {singleRegionMode
+                ? regioes.length > 0
+                  ? "Você acompanha somente o seu bairro."
+                  : "Nenhum bairro vinculado ao seu perfil."
+                : `${regioes.length} bairros em acompanhamento`}
+            </p>
           </div>
           {canCreate && (
             <button
@@ -76,17 +85,25 @@ export default function RegioesPage() {
         </div>
 
         <div className="bg-white border border-gray-100 rounded-2xl p-4 mb-4 shadow-sm">
-          <p className="text-sm font-semibold text-gray-900 mb-1">Como a campanha está distribuída</p>
+          <p className="text-sm font-semibold text-gray-900 mb-1">
+            {singleRegionMode ? "Resumo do seu bairro" : "Como a campanha está distribuída"}
+          </p>
           <p className="text-xs text-gray-500 mb-3">
-            Cada bairro pode ter um ou mais coordenadores. Cada coordenador pode ter vários líderes.
+            {singleRegionMode
+              ? "Aqui aparece somente a sua área de atuação."
+              : "Cada bairro pode ter um ou mais coordenadores. Cada coordenador pode ter vários líderes."}
           </p>
           <div className="grid grid-cols-4 gap-2">
-            <Stat value={regioes.length} label="Bairros" color="text-gray-800" />
+            <Stat value={regioes.length} label={singleRegionMode ? "Bairro" : "Bairros"} color="text-gray-800" />
             <Stat value={resumo.totalCoordenadores} label="Coorden." color="text-indigo-600" />
             <Stat value={resumo.totalLideres} label="Líderes" color="text-purple-600" />
             <Stat value={resumo.regioesCriticas} label="Atenção" color="text-red-600" />
           </div>
-          <p className="text-xs text-gray-500 mt-3">{resumo.totalPessoas} pessoas distribuídas entre os bairros.</p>
+          <p className="text-xs text-gray-500 mt-3">
+            {singleRegionMode
+              ? `${resumo.totalPessoas} pessoas vinculadas ao seu bairro.`
+              : `${resumo.totalPessoas} pessoas distribuídas entre os bairros.`}
+          </p>
         </div>
 
         <div className="mb-4">
@@ -107,7 +124,7 @@ export default function RegioesPage() {
           </div>
         )}
 
-        {grupos.criticas.length > 0 && (
+        {!singleRegionMode && grupos.criticas.length > 0 && (
           <Section
             title="Bairros que pedem ação agora"
             subtitle="São as áreas mais sensíveis da campanha neste momento."
@@ -117,7 +134,7 @@ export default function RegioesPage() {
           />
         )}
 
-        {grupos.atencao.length > 0 && (
+        {!singleRegionMode && grupos.atencao.length > 0 && (
           <Section
             title="Bairros em atenção"
             subtitle="Precisam de acompanhamento mais próximo e reforço da equipe."
@@ -127,12 +144,22 @@ export default function RegioesPage() {
           />
         )}
 
-        {grupos.estaveis.length > 0 && (
+        {!singleRegionMode && grupos.estaveis.length > 0 && (
           <Section
             title="Demais bairros"
             subtitle="Áreas estáveis para seguir acompanhando."
             titleClassName="text-gray-500"
             regioes={grupos.estaveis}
+            onClick={(targetId) => navigate(`/regioes/${targetId}`)}
+          />
+        )}
+
+        {singleRegionMode && regioes.length > 0 && (
+          <Section
+            title={isRegionalCoordinator ? "Seu bairro" : "Bairro da sua equipe"}
+            subtitle="Você visualiza somente a área vinculada ao seu perfil."
+            titleClassName="text-blue-600"
+            regioes={regioes}
             onClick={(targetId) => navigate(`/regioes/${targetId}`)}
           />
         )}

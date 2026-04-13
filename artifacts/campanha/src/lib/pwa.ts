@@ -3,6 +3,8 @@ type DeferredPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
+export const PWA_UPDATE_AVAILABLE_EVENT = "campanha:pwa-update-available";
+
 type Listener = () => void;
 
 let deferredPrompt: DeferredPromptEvent | null = null;
@@ -38,6 +40,13 @@ export function isStandalone() {
 export function isIosDevice() {
   if (typeof navigator === "undefined") return false;
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+export function isIosSafari() {
+  if (typeof navigator === "undefined") return false;
+
+  const userAgent = navigator.userAgent;
+  return isIosDevice() && /safari/i.test(userAgent) && !/crios|fxios|edgios|opios/i.test(userAgent);
 }
 
 export async function promptInstall() {

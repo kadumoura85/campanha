@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
-import { asc, eq, and } from "drizzle-orm";
+import { asc, eq, and, sql } from "drizzle-orm";
 import { db, contatosTable, usuariosTable } from "@workspace/db";
 import { CreateUsuarioBody, UpdateUsuarioBody } from "@workspace/api-zod";
 import { requireRoles } from "./auth";
@@ -19,6 +19,90 @@ type TipoUsuario =
   | "coordenador_geral"
   | "coordenador_regional"
   | "lider";
+
+function normalizeUserPhone(value: string | null | undefined) {
+  return (value || "").replace(/\D/g, "");
+}
+
+async function findUsuarioByNormalizedPhone(phone: string, excludeId?: number) {
+  const normalizedPhone = normalizeUserPhone(phone);
+  if (!normalizedPhone) return null;
+
+  const conditions = [
+    sql`regexp_replace(coalesce(${usuariosTable.telefone}, ''), '\\D', '', 'g') = ${normalizedPhone}`,
+  ];
+
+  if (excludeId !== undefined) {
+    conditions.push(sql`${usuariosTable.id} <> ${excludeId}`);
+  }
+
+  const [existing] = await db
+    .select({
+      id: usuariosTable.id,
+      nome: usuariosTable.nome,
+    })
+    .from(usuariosTable)
+    .where(and(...conditions));
+
+  return existing || null;
+}
+
+async function validateUserHierarchy(
+  actor: Awaited<ReturnType<typeof requireRoles>>,
+  targetTipo: TipoUsuario,
+  values: Record<string, unknown>,
+  res: any,
+) {
+  if (targetTipo === "coordenador_regional") {
+    if (!values.regiao_id) {
+      res.status(400).json({ error: "Coordenador deve estar vinculado a uma regiao" });
+      return false;
+    }
+
+    values.coordenador_id = null;
+  }
+
+  if (targetTipo === "lider") {
+    if (actor?.tipo === "coordenador_regional") {
+      values.coordenador_id = actor.id;
+      values.regiao_id = actor.regiao_id;
+      return true;
+    }
+
+    if (!values.coordenador_id) {
+      res.status(400).json({ error: "Lider precisa estar vinculado a um coordenador" });
+      return false;
+    }
+
+    const [coordenador] = await db
+      .select({
+        id: usuariosTable.id,
+        tipo: usuariosTable.tipo,
+        regiao_id: usuariosTable.regiao_id,
+        ativo: usuariosTable.ativo,
+      })
+      .from(usuariosTable)
+      .where(eq(usuariosTable.id, Number(values.coordenador_id)));
+
+    if (!coordenador || coordenador.tipo !== "coordenador_regional" || !coordenador.ativo) {
+      res.status(400).json({ error: "Selecione um coordenador regional ativo e valido para o lider" });
+      return false;
+    }
+
+    if (!coordenador.regiao_id) {
+      res.status(400).json({ error: "O coordenador selecionado precisa estar vinculado a uma regiao" });
+      return false;
+    }
+
+    values.regiao_id = coordenador.regiao_id;
+  }
+
+  if (["vereador", "coordenador_geral", "super_admin"].includes(targetTipo)) {
+    values.coordenador_id = null;
+  }
+
+  return true;
+}
 
 router.get("/usuarios", async (req, res): Promise<void> => {
   const usuario = await requireRoles(req, res, MANAGER_TYPES);
@@ -97,42 +181,17 @@ router.post("/usuarios", async (req, res): Promise<void> => {
 
   const values: any = { ...rest, senha_hash };
 
-  if (targetTipo === "coordenador_regional" && !values.regiao_id) {
-    res.status(400).json({ error: "Coordenador deve estar vinculado a uma regiao" });
-    return;
+  if (values.telefone) {
+    const duplicatePhone = await findUsuarioByNormalizedPhone(String(values.telefone));
+    if (duplicatePhone) {
+      res.status(400).json({ error: `Ja existe um usuario com este telefone: ${duplicatePhone.nome}` });
+      return;
+    }
   }
 
-  if (targetTipo === "lider") {
-    if (usuario.tipo === "coordenador_regional") {
-      values.coordenador_id = usuario.id;
-      values.regiao_id = usuario.regiao_id;
-    } else {
-      if (!values.coordenador_id) {
-        res.status(400).json({ error: "Lider precisa estar vinculado a um coordenador" });
-        return;
-      }
-
-      const [coordenador] = await db
-        .select({
-          id: usuariosTable.id,
-          tipo: usuariosTable.tipo,
-          regiao_id: usuariosTable.regiao_id,
-        })
-        .from(usuariosTable)
-        .where(eq(usuariosTable.id, values.coordenador_id));
-
-      if (!coordenador || coordenador.tipo !== "coordenador_regional") {
-        res.status(400).json({ error: "Selecione um coordenador valido para o lider" });
-        return;
-      }
-
-      if (!coordenador.regiao_id) {
-        res.status(400).json({ error: "O coordenador selecionado precisa estar vinculado a uma regiao" });
-        return;
-      }
-
-      values.regiao_id = coordenador.regiao_id;
-    }
+  const hierarchyOk = await validateUserHierarchy(usuario, targetTipo, values, res);
+  if (!hierarchyOk) {
+    return;
   }
 
   const [novoUsuario] = await db
@@ -240,6 +299,62 @@ router.patch("/usuarios/:id", async (req, res): Promise<void> => {
     }
   }
 
+  if (usuario.tipo === "coordenador_regional") {
+    delete updateData.tipo;
+    delete updateData.coordenador_id;
+    delete updateData.regiao_id;
+  }
+
+  if (updateData.telefone) {
+    const duplicatePhone = await findUsuarioByNormalizedPhone(String(updateData.telefone), target.id);
+    if (duplicatePhone) {
+      res.status(400).json({ error: `Ja existe um usuario com este telefone: ${duplicatePhone.nome}` });
+      return;
+    }
+  }
+
+  const finalTipo = (updateData.tipo as TipoUsuario | undefined) ?? target.tipo;
+
+  if (usuario.tipo === "coordenador_regional" && finalTipo !== "lider") {
+    res.status(403).json({ error: "Coordenador so pode manter lideres como lideres" });
+    return;
+  }
+
+  if (usuario.tipo === "coordenador_geral" && !["coordenador_regional", "lider"].includes(finalTipo)) {
+    res.status(403).json({ error: "Coordenador Geral so pode manter coordenadores e lideres" });
+    return;
+  }
+
+  if (usuario.tipo === "vereador" && finalTipo === "super_admin") {
+    res.status(403).json({ error: "Nao autorizado a promover usuario para super_admin" });
+    return;
+  }
+
+  const mergedValues: Record<string, unknown> = {
+    coordenador_id: updateData.coordenador_id ?? target.coordenador_id,
+    regiao_id: updateData.regiao_id ?? target.regiao_id,
+    ...updateData,
+  };
+
+  const hierarchyOk = await validateUserHierarchy(usuario, finalTipo, mergedValues, res);
+  if (!hierarchyOk) {
+    return;
+  }
+
+  if (target.tipo === "coordenador_regional" && finalTipo !== "coordenador_regional") {
+    const lideres = await db
+      .select({ id: usuariosTable.id })
+      .from(usuariosTable)
+      .where(and(eq(usuariosTable.tipo, "lider"), eq(usuariosTable.coordenador_id, target.id)));
+
+    if (lideres.length > 0) {
+      res.status(400).json({ error: "Reatribua os lideres deste coordenador antes de mudar seu perfil" });
+      return;
+    }
+  }
+
+  Object.assign(updateData, mergedValues);
+
   const [updated] = await db
     .update(usuariosTable)
     .set(updateData)
@@ -312,11 +427,29 @@ router.delete("/usuarios/:id", async (req, res): Promise<void> => {
       return;
     }
 
-    await db.update(contatosTable).set({ coordenador_id: null }).where(eq(contatosTable.coordenador_id, target.id));
+    const contatos = await db
+      .select({ id: contatosTable.id })
+      .from(contatosTable)
+      .where(eq(contatosTable.coordenador_id, target.id))
+      .limit(1);
+
+    if (contatos.length > 0) {
+      res.status(400).json({ error: "Reatribua as pessoas desta equipe antes de excluir o coordenador" });
+      return;
+    }
   }
 
   if (target.tipo === "lider") {
-    await db.update(contatosTable).set({ lider_id: null }).where(eq(contatosTable.lider_id, target.id));
+    const contatos = await db
+      .select({ id: contatosTable.id })
+      .from(contatosTable)
+      .where(eq(contatosTable.lider_id, target.id))
+      .limit(1);
+
+    if (contatos.length > 0) {
+      res.status(400).json({ error: "Reatribua as pessoas deste lider antes de exclui-lo" });
+      return;
+    }
   }
 
   const [deleted] = await db

@@ -1,12 +1,26 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import { existsSync } from "fs";
-import path from "path";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { uploadsRoot } from "./lib/paths";
 
 const app: Express = express();
+
+function parseCorsOrigins() {
+  const raw = process.env.CORS_ORIGIN?.trim();
+  if (!raw || raw === "*") return "*";
+
+  const origins = raw
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  return origins.length > 0 ? origins : "*";
+}
+
+const corsOrigin = parseCorsOrigins();
 
 app.use(
   pinoHttp({
@@ -27,13 +41,18 @@ app.use(
     },
   }),
 );
-app.use(cors());
+app.use(
+  cors({
+    origin: corsOrigin,
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-const uploadsDir = path.resolve(process.cwd(), "uploads");
-if (existsSync(uploadsDir)) {
-  app.use("/uploads", express.static(uploadsDir));
+if (existsSync(uploadsRoot)) {
+  app.use("/uploads", express.static(uploadsRoot));
 }
 
 app.use("/api", router);

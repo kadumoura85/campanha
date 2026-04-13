@@ -70,6 +70,8 @@ export default function DashboardLiderPage() {
         return response.blob().then((blob) => ({ blob, contentType }));
       })
       .then(({ blob, contentType }) => {
+        const assetPath = new URL(santinhoUrl, window.location.origin).pathname;
+        const extensionFromPath = assetPath.split(".").pop()?.toLowerCase();
         const extensionFromType =
           contentType.includes("png")
             ? "png"
@@ -77,7 +79,7 @@ export default function DashboardLiderPage() {
               ? "webp"
               : contentType.includes("jpeg") || contentType.includes("jpg")
                 ? "jpg"
-                : "jpg";
+                : extensionFromPath || "jpg";
         const objectUrl = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = objectUrl;
@@ -88,7 +90,11 @@ export default function DashboardLiderPage() {
         URL.revokeObjectURL(objectUrl);
       })
       .catch(() => {
-        window.open(santinhoUrl, "_blank", "noopener,noreferrer");
+        const link = document.createElement("a");
+        link.href = santinhoUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.click();
       });
   };
 

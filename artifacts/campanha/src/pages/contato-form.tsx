@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import Layout from "@/components/Layout";
-import { apiGet, apiPatch, apiPost } from "@/lib/api";
+import {
+  apiGet,
+  apiPatch,
+  apiPost,
+  isQueuedMutationResponse,
+  type QueuedMutationResponse,
+} from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 
 interface Contato {
@@ -50,6 +56,22 @@ const ORIGEM_OPTIONS = [
   { value: "outro", label: "Outro" },
 ];
 
+function getFriendlyContatoError(message: string) {
+  if (message.includes("ja esta cadastrada na base do lider")) {
+    return `${message} Cada pessoa pode pertencer a apenas uma base. Se for necessario, a transferencia deve ser tratada pela coordenação.`;
+  }
+
+  if (message.includes("ja esta cadastrada na base de outro lider")) {
+    return "Esta pessoa ja esta na base de outro lider. Para evitar duplicidade, o cadastro foi bloqueado.";
+  }
+
+  if (message.includes("Ja existe uma pessoa cadastrada com este telefone")) {
+    return `${message} Confira se a pessoa ja foi registrada antes de criar um novo cadastro.`;
+  }
+
+  return message;
+}
+
 export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
   const { usuario } = useAuth();
   const params = useParams<{ id: string }>();
@@ -57,6 +79,7 @@ export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
 
   const podeAcessar = ["lider", "coordenador_regional", "coordenador_geral", "super_admin"].includes(usuario?.tipo || "");
   const precisaEscolherLider = usuario?.tipo !== "lider";
+  const hideSecondaryFieldsForLeader = usuario?.tipo === "lider";
 
   const [form, setForm] = useState({
     nome: "",
@@ -74,6 +97,7 @@ export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [savedOffline, setSavedOffline] = useState(false);
 
   useEffect(() => {
     apiGet<UsuarioOption[]>("/api/usuarios?tipo=lider")
@@ -116,6 +140,8 @@ export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess(false);
+    setSavedOffline(false);
 
     if (precisaEscolherLider && !form.lider_id) {
       setError("Selecione um líder para o contato.");
@@ -135,16 +161,20 @@ export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
         lider_id: form.lider_id ? Number(form.lider_id) : null,
       };
 
-      if (modo === "novo") {
-        await apiPost("/api/contatos", body);
-      } else {
-        await apiPatch(`/api/contatos/${params.id}`, body);
-      }
+      const result =
+        modo === "novo"
+          ? await apiPost<QueuedMutationResponse>("/api/contatos", body)
+          : await apiPatch<QueuedMutationResponse>(`/api/contatos/${params.id}`, body);
 
-      setSuccess(true);
-      setTimeout(() => navigate("/contatos"), 1200);
+      if (isQueuedMutationResponse(result)) {
+        setSavedOffline(true);
+        setTimeout(() => navigate("/contatos"), 1800);
+      } else {
+        setSuccess(true);
+        setTimeout(() => navigate("/contatos"), 1200);
+      }
     } catch (err: any) {
-      setError(err.message || "Erro ao salvar.");
+      setError(getFriendlyContatoError(err.message || "Erro ao salvar."));
     } finally {
       setLoading(false);
     }
@@ -186,7 +216,21 @@ export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
           </div>
         )}
 
-        {error && <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{error}</div>}
+        {savedOffline && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            <p className="font-semibold">Pessoa guardada para sincronizar depois.</p>
+            <p className="mt-1">
+              O cadastro ficou salvo neste aparelho e sera enviado automaticamente quando a conexao voltar.
+            </p>
+          </div>
+        )}
+
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+            <p className="font-semibold">Nao foi possivel salvar esta pessoa.</p>
+            <p className="mt-1">{error}</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -282,44 +326,48 @@ export default function ContatoFormPage({ modo }: { modo: "novo" | "editar" }) {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
-              <input
-                name="bairro"
-                value={form.bairro}
-                onChange={handleChange}
-                placeholder="Bairro"
-                className="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Rua / referência</label>
-              <input
-                name="rua_referencia"
-                value={form.rua_referencia}
-                onChange={handleChange}
-                placeholder="Rua ou referência"
-                className="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
+          {!hideSecondaryFieldsForLeader && (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+                  <input
+                    name="bairro"
+                    value={form.bairro}
+                    onChange={handleChange}
+                    placeholder="Bairro"
+                    className="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Rua / referência</label>
+                  <input
+                    name="rua_referencia"
+                    value={form.rua_referencia}
+                    onChange={handleChange}
+                    placeholder="Rua ou referência"
+                    className="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Como chegou até nós</label>
-            <select
-              name="origem"
-              value={form.origem}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              {ORIGEM_OPTIONS.map((origem) => (
-                <option key={origem.value} value={origem.value}>
-                  {origem.label}
-                </option>
-              ))}
-            </select>
-          </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Como chegou até nós</label>
+                <select
+                  name="origem"
+                  value={form.origem}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  {ORIGEM_OPTIONS.map((origem) => (
+                    <option key={origem.value} value={origem.value}>
+                      {origem.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>

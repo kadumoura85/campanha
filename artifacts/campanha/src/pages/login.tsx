@@ -26,7 +26,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const usuario = await login(telefone, senha);
-      navigate(getDashboardPath(usuario.tipo));
+      navigate(getDashboardPath(usuario?.tipo));
     } catch (err: any) {
       setError(err.message || "Erro ao fazer login");
     } finally {
@@ -87,6 +87,10 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white/95 backdrop-blur rounded-[28px] shadow-2xl border border-white/20 p-5 sm:p-6">
+          <div className="mb-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            Entre com o telefone e a senha da sua equipe para acessar sua area de trabalho.
+          </div>
+
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
               {error}
@@ -135,6 +139,9 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-5 pt-3 border-t border-gray-100">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Acessos de demonstracao
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
               {demoAccounts.map((demo) => (
                 <button
